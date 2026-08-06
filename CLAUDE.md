@@ -1,5 +1,7 @@
 @AGENTS.md
 
+Directly respect negative rules: if the prompt or guidelines prohibit a specific file, term, or pattern (e.g., "do not use middleware"), you MUST NOT include it anywhere in the response or code.
+
 # Tech Stack & Documentation References
 
 The project relies strictly on the following technologies and standards. Refer to the official documentation links below for syntax, features, and best practices:
@@ -30,6 +32,20 @@ The project relies strictly on the following technologies and standards. Refer t
 
 9. **Supabase:** Backend-as-a-Service for database management, authentication, and storage.
    - Docs: https://supabase.com/docs
+
+BEFORE proposing architectural structures, file names, or framework conventions: verify if the convention is valid for the current/latest target version. - If you are unsure whether a file naming convention or API method still exists in Next.js, explicitly state your uncertainty or search the official documentation instead of relying on legacy memory. - DO NOT hallucinate migration tools, codemods, or API exports (e.g., `export function proxy`) without absolute certainty.
+
+## Rules for Forward-Thinking & Scalable Architecture
+
+1. **Anticipate Related Features (Predictive Design):**
+   - NEVER design a feature as a standalone, isolated entity.
+   - Always anticipate logical pairs and upcoming workflows (e.g., if creating Registration -> predict Login, Reset Password, and Profile; if creating a Cart -> predict Checkout).
+   - Structure folders, functions, and state to accommodate these upcoming features without needing a complete refactoring later.
+
+2. **Generic & Reusable Contracts over Specific Models:**
+   - DO NOT create single-purpose data structures or tight-coupling types for specific features (e.g., DO NOT name types `AuthResult` or `LoginResponse`).
+   - Use generic, reusable data abstractions (e.g., `ActionResponse<T>`, `ApiResponse<T>`, `Result<T, E>`) that accept generic payloads.
+   - Separate infrastructure/network types from domain-specific payloads.
 
 ## Dependency Management & Documentation Verification
 
@@ -103,6 +119,10 @@ The routing behavior is:
 - **Authenticated users**
   - May freely access any page in the Protected Section.
   - Any attempt to access pages in the Public Section MUST be redirected to the main page of the Protected Section.
+
+- **No Outdated Conventions (Zero Tolerance):**
+  - NEVER suggest or write `middleware.ts` / `middleware.js` in Next.js. This convention is deprecated/removed in favor of `proxy.ts`.
+  - If a request involves request interception, rewrite, routing, or pre-processing, ALWAYS use `proxy.ts`.
 
 ### Protected Section Structure
 
@@ -252,6 +272,9 @@ Before starting development, determine the data architecture pattern. Choose **O
 - **Single Source of Truth:** If Server Actions are chosen, execute all server-side logic via actions in `actions/`. If API Routes are chosen, route all client-side data requests through `services/` to `app/api/` with TanStack Query.
 
 # Component Architecture Guidelines
+
+ALL basic UI elements (inputs, buttons, dialogs, dropdowns, forms, badges, etc.) MUST be built on top of `shadcn/ui`.
+NEVER use native HTML form controls (e.g., `<input>`, `<button>`, `<select>`) or custom elements if an equivalent `shadcn/ui` component exists.
 
 ## Directory Structure
 
@@ -658,3 +681,14 @@ Client Component (Form / `useActionState` / `useTransition`)
   - Component prop: `onSave`
   - Internal handler: `handleSave`
 - **No Abbreviations:** Avoid cryptical abbreviations, shortcuts, or single-letter names in variables, arguments, and function definitions. Variable names must be spelled out fully to clearly explain their purpose (e.g., `userIndex` instead of `idx`, `request` instead of `req`, `response` instead of `res`, `element` instead of `el`, `button` instead of `btn`).
+
+# Strict Form Architecture Rules (React Hook Form & Controller)
+
+1. **Mandatory React Hook Form Standard:**
+   - ALL forms MUST be managed strictly using `react-hook-form` paired with `zod` schema validation.
+   - Direct manual state management (`useState` for form fields) is STRICTLY PROHIBITED.
+
+2. **Self-Contained Encapsulated Controllers:**
+   - NEVER extract or keep `<Controller>` logic outside of the input component or in parent wrapper components.
+   - EVERY custom UI input, select, checkbox, or field component MUST encapsulate its own `Controller` inside itself.
+   - The parent form component should only pass the `control` object, `name`, and field-specific props down to the child component.
