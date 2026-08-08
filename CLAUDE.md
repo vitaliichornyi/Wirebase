@@ -420,6 +420,7 @@ if (!response.ok) throw new Error(error || 'Default fallback message');
 ### Type Inference from Zod
 
 - Never manually duplicate a TypeScript `type`/`interface` alongside a Zod schema for form inputs, API payloads, or request params.
+- **Merge duplicate schemas, don't duplicate rules:** when two schemas describe the same shape with identical validation rules, define one shared schema (and reuse its inferred type) instead of repeating the same `z.object` fields in two files. Keep them separate when the actions are semantically distinct and likely to diverge — e.g. a login schema typically only requires a password to be present (the real check happens server-side), while a registration schema enforces a minimum-length/strength policy; forcing those into one shared schema would make future tightening of one flow silently affect the other.
 - Derive types directly with `z.infer<typeof schema>`:
 
 ```ts
