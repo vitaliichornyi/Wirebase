@@ -123,13 +123,13 @@ src/
 - **Core philosophy:** avoid micro-files. Group all closely related operations for a feature into one file by domain/module (e.g. `auth.ts` covers `login`, `logout`, `refreshToken`; `links.ts`, `links-analytics.ts`).
 - **File naming:** kebab-case only, everywhere. Pattern: `domain.ts` or `domain-submodule.ts`.
 
-| Location                                       | File naming                                       | Symbol naming                | Example                                                                    |
-| ---------------------------------------------- | ------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------- |
-| `types/`                                       | kebab-case (`links.ts`, `auth-credentials.ts`)    | PascalCase types/interfaces  | `export type DashboardStats = {...}`, `export interface UserProfile {...}` |
-| `services/` or `actions/` (mutually exclusive) | kebab-case (`auth.ts`, `links-management.ts`)     | camelCase functions          | `export const loginUser = async () => {...}`                               |
-| `schemas/`                                     | kebab-case (`auth.ts`, `links.ts`)                | camelCase, suffixed `Schema` | `export const loginSchema = z.object({...})`                               |
-| `lib/` / constants                             | kebab-case (`auth-constants.ts`, `api-routes.ts`) | UPPER_SNAKE_CASE             | `export const MAX_RETRY_ATTEMPTS = 3;`                                     |
-| `hooks/`                                       | kebab-case, `use-` prefix (`use-auth.ts`)         | camelCase, `use` prefix      | `export const useAuth = () => {...}`                                       |
+| Location                                       | File naming                                       | Symbol naming                                     | Example                                                                     |
+| ---------------------------------------------- | ------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| `types/`                                       | kebab-case (`links.ts`, `auth-credentials.ts`)    | PascalCase types/interfaces                       | `export type DashboardStats = {...}`, `export interface UserProfile {...}`  |
+| `services/` or `actions/` (mutually exclusive) | kebab-case (`auth.ts`, `links-management.ts`)     | camelCase functions                               | `export async function loginUser() {...}`                                   |
+| `schemas/`                                     | kebab-case (`auth.ts`, `links.ts`)                | camelCase, suffixed `Schema`                      | `export const loginSchema = z.object({...})`                                |
+| `lib/` / constants                             | kebab-case (`auth-constants.ts`, `api-routes.ts`) | UPPER_SNAKE_CASE (constants); camelCase functions | `export const MAX_RETRY_ATTEMPTS = 3;`, `export function maskEmail() {...}` |
+| `hooks/`                                       | kebab-case, `use-` prefix (`use-auth.ts`)         | camelCase, `use` prefix                           | `export function useAuth() {...}`                                           |
 
 ---
 
@@ -239,7 +239,11 @@ components/
 
 - **Directional imports:** hierarchy is `layout` → `composites` → `elements` → `ui`. A higher layer may import a lower one; a lower layer must never import a higher one.
 - **Check before creating:** before adding any new `ui`, `elements`, or `composites` component, check whether one already exists and reuse/extend it instead of duplicating.
-- **Never consume shadcn primitives raw:** each primitive (or small related group) must be wrapped in a dedicated `elements/` component owning its domain logic, labels, state, and error handling (e.g. `ui/input.tsx` + `ui/label.tsx` + `ui/form-message.tsx` → `elements/text-field.tsx`; the app uses `TextField`, never the raw parts).
+- **Check the full shadcn registry, not just the handful already installed:** before hand-writing any markup/logic inside an `elements/` component (error text, label wiring, prefix/suffix icons, show/hide toggles, etc.), check whether shadcn already ships a purpose-built primitive for it — run `npx shadcn@latest view <name>` or browse https://ui.shadcn.com/docs/components. The registry has ~65 components, most not yet pulled into this project (e.g. `field`/`field-label`/`field-error` for form-field composition, `input-group` for prefixed/suffixed inputs, `input-otp`, `combobox`) — don't assume the primitives already in `components/ui/` are the only ones available. A missed match means reinventing accessibility/state wiring (ARIA attributes, invalid/disabled propagation, error-list de-duplication, etc.) that's already solved upstream.
+- **Never consume shadcn primitives raw:** each primitive (or small related group) must be wrapped in a dedicated `elements/` component owning its domain logic, labels, state, and error handling (e.g. `ui/field.tsx` (`Field`/`FieldLabel`/`FieldError`) + `ui/input-group.tsx` (`InputGroup`/`InputGroupInput`) → `elements/text-field.tsx`; the app uses `TextField`, never the raw parts).
+- **Text-style field elements are built on `InputGroup`:** any `elements/fields/` component wrapping a text-style input (`text-field.tsx` and friends) uses `InputGroup` + `InputGroupInput`, never the bare `ui/input.tsx` directly — even when no affix is needed yet. Expose optional `prefix`/`suffix` props (rendered via `InputGroupAddon`) so icons, currency symbols, unit labels, or show/hide-password toggles can be added later through props alone, with no restructuring of the component or its call sites.
+- **Split components by mechanism, not by label:** if two variants share the same underlying interaction mechanism and differ only in prop values (type, placeholder, validation, copy), they are one component configured via props — not separate files. A single `TextField` covers email, password, and any other text-style input; don't create `PasswordField`, `EmailField`, etc. as separate components. Split into genuinely separate components only when the underlying mechanism differs (e.g. a text field vs. a select/dropdown vs. a drag-and-drop dropzone) — those don't share internals and forcing them into one component would just be a conditional maze.
+- **Name the discriminator, don't split on it:** any `elements/` component with more than one semantic variant of the same mechanism exposes a single explicit discriminator prop — `variant` by default; reuse a more specific name only where it already carries that meaning in the DOM (e.g. input `type` for email/password/text). Define the prop even when only one call site exists today. Before creating a new component for what looks like a new case, check whether an existing component's discriminator prop can just take a new value instead.
 - **Pages are orchestrators:** `page.tsx` assembles only `composites` and `elements` — never raw HTML controls or raw shadcn primitives. If a combination of elements is used on one page only, assemble it inline in a plain `div`; promote it to a `composites` component only once the exact combination is duplicated across multiple pages/features.
 - **Layout components stay in layout:** `Header`, `Sidebar`, `Footer`, page shells, etc. are consumed only within the layout layer — never reused as building blocks inside feature pages or composites.
 - **No abstract layout primitives:** don't introduce `VStack`/`HStack`-style wrappers, and don't use shadcn's `Card` as a page-layout shortcut. Build page/section layout with plain `<div>`/`<section>` styled via Tailwind utilities (`flex`, `grid`, `gap-*`, `space-*`), placing your own `elements` components inside.
@@ -282,15 +286,23 @@ These rules apply regardless of which pattern was selected above.
 
 **Standardized response format:**
 
-- Services never throw unhandled errors — always return a result object.
-- Data-returning functions: `Promise<ServiceResponse<T>>`
-  - Success: `{ data: T, error: null }`
-  - Failure: `{ data: null, error: string }`
-- Simple actions (login, logout, etc.):
-  - Success: `{ error: null }`
-  - Failure: `{ error: string }`
+- Services/actions never throw unhandled errors — always return a result object.
+- One generic result type per pattern, defined once and reused everywhere. Never write the response shape as an inline object-literal return type (e.g. `Promise<{ error: string | null }>` is forbidden) — always name it via the shared type below. If the type doesn't exist yet in `src/types/` (new project, or first action/service ever written), create it there first — an empty/missing `types/` file is never a reason to fall back to an inline literal.
+  - Server Actions pattern → `src/types/action-response.ts`:
+    ```ts
+    export type ActionResponse<T = void> = T extends void
+      ? { error: string | null }
+      : { data: T | null; error: string | null };
+    ```
+  - API Routes pattern → `src/types/service-response.ts`:
+    ```ts
+    export type ServiceResponse<T = void> = T extends void
+      ? { error: string | null }
+      : { data: T | null; error: string | null };
+    ```
+- No `T` (defaults to `void`) → `{ error: string | null }` — this is the "simple action" shape (login, logout, register, etc.). Pass `T` (e.g. `ActionResponse<DashboardStats>`) → `{ data: T | null, error: string | null }` — this is the "data-returning" shape.
 - This `{ data, error }` shape is preserved end-to-end, from the database up to the UI (and across API responses in the API-routes pattern).
-- Never return raw primitives or bare nullable types from actions/services (e.g. `Promise<string | null>`, `Promise<boolean>`) — always wrap in `ServiceResponse<T>` (or `ServiceResult<T>`).
+- Never return raw primitives or bare nullable types from actions/services (e.g. `Promise<string | null>`, `Promise<boolean>`) — always wrap in `ActionResponse<T>` (Server Actions pattern) or `ServiceResponse<T>` (API Routes pattern), never both in the same project.
 
 **Authentication & authorization:**
 
@@ -430,7 +442,7 @@ export type AuthInput = z.infer<typeof authSchema>;
 ### Naming Standards
 
 - **No Hungarian notation / generic suffixes:** never prefix with `I` (`IUser`) or suffix with `Interface`/`Type` (`UserInterface`, `UserType`). Use clean singular nouns (`User`, `Project`, `Invoice`).
-- **No raw primitive returns:** Server Actions and service functions must not return raw primitives/nullables directly — always wrap in `Promise<ServiceResponse<T>>` (see Data Layer → Standardized Response Format).
+- **No raw primitive returns:** Server Actions and service functions must not return raw primitives/nullables directly — always wrap in `Promise<ActionResponse<T>>` or `Promise<ServiceResponse<T>>`, whichever matches the selected pattern (see Data Layer → Standardized Response Format).
 - **Contextual suffixes** for non-entity interfaces:
   - Component props: `<Name>Props` (`UserCardProps`, `SidebarProps`)
   - Forms/inputs: `<Name>FormValues` or `<Action><Entity>Input` (`CreateProjectInput`, `UserFormValues`)
@@ -443,7 +455,8 @@ export type AuthInput = z.infer<typeof authSchema>;
 ### Function Syntax
 
 - **Components:** standard function declarations (`function ComponentName() {...}`).
-- **Internal logic/handlers:** arrow functions for helpers, event handlers, callbacks inside components (`const handleClick = () => {...}`).
+- **Top-level exported functions** — actions (`src/actions/`), services (`src/services/`), hooks (`src/hooks/`), and `lib/` helpers — standard function declarations (`export async function loginUser() {...}`, `export function useAuth() {...}`, `export function maskEmail() {...}`). Never `export const x = () => {...}` for these.
+- **Internal logic/handlers:** arrow functions for helpers, event handlers, callbacks defined _inside_ a component (`const handleClick = () => {...}`). Arrow functions are for this case only — not for standalone top-level functions.
 
 ### Variable Naming
 
