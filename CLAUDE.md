@@ -1,200 +1,187 @@
-@AGENTS.md
+# CLAUDE.md — Project Engineering Standards
 
-Directly respect negative rules: if the prompt or guidelines prohibit a specific file, term, or pattern (e.g., "do not use middleware"), you MUST NOT include it anywhere in the response or code.
+**Contents:** Maintenance Protocol · Tech Stack · Directory Structure · Routing & Access Control · RESTful API Architecture · Component Architecture · Data Layer · Types & Zod Schemas · Code Style · Forms · Security & Environment Variables · UI Copy Guidelines
 
-# Tech Stack & Documentation References
+---
 
-The project relies strictly on the following technologies and standards. Refer to the official documentation links below for syntax, features, and best practices:
+## Maintenance Protocol
 
-1. **React:** Core UI library.
-   - Docs: https://react.dev/reference/react
+This file is read at the start of every session as the project's rule set — treat it as read-only context by default.
 
-2. **Next.js:** Core framework for routing, rendering, and server side functionality.
-   - Docs: https://nextjs.org/docs
+- **Read, don't edit, by default.** Never modify this file on your own initiative — not to "clean up," fix a typo, reorder, or rephrase — even if something looks improvable. Follow the rules; don't maintain the file unless asked.
+- **Edit only on an explicit add-rule request.** The user will say something like "add a rule that..." / "добавь правило чтобы...". That phrasing (or equivalent) is the only trigger to write to this file.
+- **Where to put a new rule:**
+  1. Find the existing `##`/`###` section the rule belongs to and add it there as a new bullet, in that section's existing style (dense bullets, tables, or code fences — match what's already there).
+  2. If no section fits, create a new `##` section in a sensible place and add it to the Contents line at the top.
+  3. Never add a numbered section header (`## 1.`, `### 2.3`, etc.) — headers stay name-only, and cross-references point to header names in bold, never numbers (see why in git history / ask the user if unclear — a past renumbering silently broke every `§N` reference in this file).
+- **Before adding, check for conflicts.** If the new rule contradicts or overlaps an existing one, point out the conflict and ask how to resolve it rather than silently adding a duplicate or contradictory bullet.
+- **No unsolicited restructuring.** Bulk reorganizations (like the one that produced this file) happen only when the user explicitly asks for them — not as a side effect of adding one rule.
 
-3. **TypeScript:** Static typing system across the entire application.
-   - Docs: https://www.typescriptlang.org/docs/
+---
 
-4. **TanStack Query (React Query):** Client-side asynchronous state management, data fetching, and caching.
-   - Docs: https://tanstack.com/query/latest/docs/framework/react/overview
+## Tech Stack & Documentation
 
-5. **Tailwind CSS:** Utility-first CSS framework for styling components via utility classes.
-   - Docs: https://tailwindcss.com/docs
+The project relies strictly on the technologies below. Refer to the official docs for syntax, features, and best practices — do not rely on legacy memory.
 
-6. **shadcn/ui:** Accessible, customizable UI component primitive foundation.
-   - Docs: https://ui.shadcn.com/docs/installation
+| Technology      | Purpose                                           | Docs                                                            |
+| --------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| React           | Core UI library                                   | https://react.dev/reference/react                               |
+| Next.js         | Routing, rendering, server-side functionality     | https://nextjs.org/docs                                         |
+| TypeScript      | Static typing across the app                      | https://www.typescriptlang.org/docs/                            |
+| TanStack Query  | Client-side async state, fetching, caching        | https://tanstack.com/query/latest/docs/framework/react/overview |
+| Tailwind CSS    | Utility-first styling                             | https://tailwindcss.com/docs                                    |
+| shadcn/ui       | Accessible UI primitives                          | https://ui.shadcn.com/docs/installation                         |
+| Zod             | Schema validation (API payloads, forms, env vars) | https://zod.dev/                                                |
+| React Hook Form | Form state & input handling                       | https://react-hook-form.com/docs                                |
+| Supabase        | Database, auth, storage (BaaS)                    | https://supabase.com/docs                                       |
 
-7. **Zod:** Schema validation library for API payloads, forms, and environment variables.
-   - Docs: https://zod.dev/
+### Version & Convention Verification
 
-8. **React Hook Form:** Lightweight form state management and input handling.
-   - Docs: https://react-hook-form.com/docs
+- Before proposing architectural structures, file names, or framework conventions, verify they are valid for the current/latest target version.
+- If unsure whether a naming convention or API method still exists, explicitly state the uncertainty or check the official docs — never rely on legacy memory.
+- Do not hallucinate migration tools, codemods, or API exports without absolute certainty.
 
-9. **Supabase:** Backend-as-a-Service for database management, authentication, and storage.
-   - Docs: https://supabase.com/docs
+### Dependency Management
 
-BEFORE proposing architectural structures, file names, or framework conventions: verify if the convention is valid for the current/latest target version. - If you are unsure whether a file naming convention or API method still exists in Next.js, explicitly state your uncertainty or search the official documentation instead of relying on legacy memory. - DO NOT hallucinate migration tools, codemods, or API exports (e.g., `export function proxy`) without absolute certainty.
+- **Pre-installation check:** before installing/configuring any library, inspect `package.json` to confirm whether it's already installed.
+- **Version-specific docs:** don't guess API usage — check the exact installed version in `package.json` and reference the docs for that version.
+- **Conflict resolution:** if a request, syntax, or prompt conflicts with training data or modern package practices, verify the current correct implementation against the official docs before writing code.
 
-## Rules for Forward-Thinking & Scalable Architecture
+---
 
-1. **Anticipate Related Features (Predictive Design):**
-   - NEVER design a feature as a standalone, isolated entity.
-   - Always anticipate logical pairs and upcoming workflows (e.g., if creating Registration -> predict Login, Reset Password, and Profile; if creating a Cart -> predict Checkout).
-   - Structure folders, functions, and state to accommodate these upcoming features without needing a complete refactoring later.
+## Directory Structure
 
-2. **Generic & Reusable Contracts over Specific Models:**
-   - DO NOT create single-purpose data structures or tight-coupling types for specific features (e.g., DO NOT name types `AuthResult` or `LoginResponse`).
-   - Use generic, reusable data abstractions (e.g., `ActionResponse<T>`, `ApiResponse<T>`, `Result<T, E>`) that accept generic payloads.
-   - Separate infrastructure/network types from domain-specific payloads.
+### Root Convention
 
-## Dependency Management & Documentation Verification
+All source code lives strictly inside `src/`.
 
-1. **Pre-installation Check:** Before installing or configuring any library, ALWAYS inspect `package.json` to verify if the package is already installed.
-2. **Version-Specific Docs:** Do not guess API usages. Always inspect the exact package version in `package.json` and reference the official documentation corresponding to that specific version.
-3. **Conflict & Outdated Knowledge Resolution:** If a requested task, syntax, or user prompt conflicts with your training data or modern package practices, check the official library documentation to verify the current correct implementation before providing code.
+### App Router Layout
 
-# Application & Routing Architecture
-
-## Directory Structure Pattern
-
-All source code must strictly reside inside `src/`. All application routing is built strictly on Next.js App Router conventions (inside `src/app/`). File placement directly dictates URL routing, layout inheritance, and access control. Below is an example of folder and routing structure:
+Routing is built strictly on Next.js App Router conventions inside `src/app/`. File placement directly dictates URL routing, layout inheritance, and access control:
 
 ```text
 src/
-├── proxy.ts # Proxy / Access control (https://nextjs.org/docs/app/getting-started/proxy)
+├── proxy.ts # Access control (see Routing & Access Control)
 └── app/
     ├── layout.tsx # Root layout
-    ├── page.tsx # The public entry page.
-    ├── {feature}/
-    │   └── page.tsx # Another unprotected sections.
-    ├── {feature}/ # Protected application section.
-    │   ├── layout.tsx # Section layout (Sidebar, Header, App Shell)
+    ├── page.tsx # Public entry page.
+    ├── <feature_name>/
+    │   └── page.tsx # Another unprotected section.
+    ├── <feature_name>/ # Protected application section.
+    │   ├── layout.tsx # Section layout
     │   ├── page.tsx # Main page of the protected section.
-    │   ├── new/
-    │   │   └── page.tsx # Entity creation page belonging to a parent section.
-    │   └── {feature}/ # Other protected application sections (e.g., insights, settings, billing)
+    │   └── <feature_name>/ # Another protected application section
     │       └── page.tsx
     └── api/ # API route handlers
-        └── {resource}/ # Entity collection endpoint (e.g., insights, users)
+        └── <resource_name>/ # Entity collection endpoint (e.g., movies, users)
             ├── route.ts
-            └── [id]/ # Dynamic entity endpoint (e.g., users/[id])
+            └── [id]/ # Dynamic entity endpoint (e.g., movies/[id])
                 └── route.ts
 ```
 
-## Routing & Layout Rules
+Placeholders (not literal folder names) — replace with names appropriate to the project:
 
-### Template Placeholders
+- `<feature_name>` → an application section (`dashboard`, `users`, `projects`, `settings`, `billing`, `insights`, `reports`)
+- `<resource_name>` → an API resource (`users`, `projects`, `posts`, `orders`)
+- `[id]` → a dynamic resource identifier
 
-This document describes a reusable application architecture.
-The following names are **placeholders**, not literal folder names:
+### Extended `src/` Structure
 
-- `{feature}` → any application section (e.g. `dashboard`, `users`, `projects`, `settings`, `billing`, `insights`, `reports`)
+```text
+src/
+├── components/   # UI Components
+├── types/        # TypeScript interface & type definitions
+├── schemas/      # Zod validation schemas
+├── lib/          # Third-party client setups (e.g., Supabase client), constants, and utils
+├── hooks/        # Custom React hooks
+├── providers/    # Global React context providers
+└── actions/  OR  services/   # Mutually exclusive — see Data Layer → Pattern Selection
+```
 
-Replace these placeholders with the appropriate names for the current project.
+`actions/` and `services/` are never both present in the same project — the chosen data-fetching pattern determines which one exists.
+
+| Folder       | Present when                    | Responsibility                                                                                                                                                                                                  |
+| ------------ | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `types/`     | always                          | Shared TypeScript interfaces, types, and database models. Keep modular, grouped by domain (`user.ts`, `links.ts`).                                                                                              |
+| `schemas/`   | always                          | All Zod validation schemas for forms and API payloads.                                                                                                                                                          |
+| `lib/`       | always                          | Third-party library initialization only (e.g. Supabase client creation in `lib/supabase/`), shared helpers, and global constants. Never DB queries or auth logic — see Data Layer → Environment & Client Setup. |
+| `hooks/`     | always                          | Reusable custom React hooks (`useDebounce`, `useMediaQuery`, etc.).                                                                                                                                             |
+| `providers/` | always                          | One global provider per file — see Providers & Root Layout below.                                                                                                                                               |
+| `actions/`   | **Server Actions pattern only** | The entire pipeline for a mutation lives in one file: Zod validation, business logic, and DB/Supabase calls, all inside each `'use server'` action. No separate service layer exists in this pattern.           |
+| `services/`  | **API Routes pattern only**     | The only place business logic and DB/Supabase queries live in this pattern. Called exclusively by `route.ts` handlers, which stay thin.                                                                         |
+
+### Providers & Root Layout
+
+- Each global provider (TanStack Query Provider, Theme Provider, Toast Provider, etc.) lives in its own file inside `src/providers/`.
+- Every provider file must start with `'use client'`.
+- Never stack multiple providers in a single file.
+- Global providers are wired up **only** in the root layout (`src/app/layout.tsx`) — never in nested/section/feature layouts.
+- `src/app/layout.tsx` must remain a Server Component; never convert it to a Client Component to render providers.
+
+### File & Code Naming Conventions
+
+- **Core philosophy:** avoid micro-files. Group all closely related operations for a feature into one file by domain/module (e.g. `auth.ts` covers `login`, `logout`, `refreshToken`; `links.ts`, `links-analytics.ts`).
+- **File naming:** kebab-case only, everywhere. Pattern: `domain.ts` or `domain-submodule.ts`.
+
+| Location                                       | File naming                                       | Symbol naming                | Example                                                                    |
+| ---------------------------------------------- | ------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------- |
+| `types/`                                       | kebab-case (`links.ts`, `auth-credentials.ts`)    | PascalCase types/interfaces  | `export type DashboardStats = {...}`, `export interface UserProfile {...}` |
+| `services/` or `actions/` (mutually exclusive) | kebab-case (`auth.ts`, `links-management.ts`)     | camelCase functions          | `export const loginUser = async () => {...}`                               |
+| `schemas/`                                     | kebab-case (`auth.ts`, `links.ts`)                | camelCase, suffixed `Schema` | `export const loginSchema = z.object({...})`                               |
+| `lib/` / constants                             | kebab-case (`auth-constants.ts`, `api-routes.ts`) | UPPER_SNAKE_CASE             | `export const MAX_RETRY_ATTEMPTS = 3;`                                     |
+| `hooks/`                                       | kebab-case, `use-` prefix (`use-auth.ts`)         | camelCase, `use` prefix      | `export const useAuth = () => {...}`                                       |
+
+---
+
+## Routing & Access Control
 
 ### Public & Protected Sections
 
-The application is divided into two logical areas:
-
-- **Public (Unprotected) Section**
-  - Accessible without authentication.
-  - May contain the landing page, login page, register page, marketing pages, documentation, etc.
-  - The root page (`app/page.tsx`) may represent any public entry point depending on the project.
-
-- **Protected Section**
-  - Accessible only to authenticated users.
-  - Contains the main application.
-  - Has its own shared layout (`layout.tsx`) responsible for the application shell (Sidebar, Header, Navigation, etc.).
-  - All authenticated pages should be placed inside this section.
+- **Public (unprotected):** accessible without authentication — landing page, login, register, docs, etc. `app/page.tsx` may represent any public entry point depending on the project.
+- **Protected:** accessible only to authenticated users. Contains the main application, with its own shared `layout.tsx` for the app shell (Sidebar, Header, Navigation). All authenticated pages live here.
 
 ### Authentication Routing
 
-Access control MUST be handled in `src/proxy.ts` according to the Next.js Proxy documentation.
-The routing behavior is:
+Access control is handled strictly in `src/proxy.ts` (Next.js Proxy — `middleware.ts`/`middleware.js` no longer exists in this project's target Next.js version; it was renamed to `proxy.ts`):
 
-- **Unauthenticated users**
-  - May freely access any page in the Public Section.
-  - Any attempt to access the Protected Section MUST be redirected to the Public root page (`/`).
+- Unauthenticated users can freely access the Public Section; any attempt to reach the Protected Section redirects to `/`.
+- Authenticated users can freely access the Protected Section; any attempt to reach the Public Section redirects to the Protected Section's main page.
+- Any request interception, rewrite, routing, or pre-processing goes in `proxy.ts`. Never suggest or write `middleware.ts`.
 
-- **Authenticated users**
-  - May freely access any page in the Protected Section.
-  - Any attempt to access pages in the Public Section MUST be redirected to the main page of the Protected Section.
+### Dynamic Routes & URL Prefixing
 
-- **No Outdated Conventions (Zero Tolerance):**
-  - NEVER suggest or write `middleware.ts` / `middleware.js` in Next.js. This convention is deprecated/removed in favor of `proxy.ts`.
-  - If a request involves request interception, rewrite, routing, or pre-processing, ALWAYS use `proxy.ts`.
+- **Forbidden root dynamic routes:** dynamic parameters must never sit directly at the root of `app/` (e.g. `src/app/[slug]/page.tsx` is strictly forbidden) — they collide with global pages, auth routes, and the standard 404 fallback.
+- **Mandatory entity prefixes:** every dynamic segment must live inside an explicit parent directory that scopes the entity type:
+  - Catch-all/redirect shortcodes: a dedicated short-prefix directory, e.g. `src/app/c/[slug]/page.tsx` for `/c/abc123`.
+  - Domain entities: the plural entity name, e.g. `src/app/movies/[id]/page.tsx`, `src/app/users/[id]/page.tsx`.
+- Never mix generic root-level routing with dynamic pattern matching — shortlinks, deep links, or user handles must live in their own scoped namespace.
 
-### Protected Section Structure
+---
 
-The protected section should follow this pattern:
-
-- A shared `layout.tsx` provides the application shell.
-- `page.tsx` represents the main entry page after authentication.
-- Additional sections (e.g. `{feature}`) are placed inside the protected area.
-- Resource creation pages (e.g. `new/page.tsx`) belong to their parent feature.
-- Additional nested features may have their own layouts when necessary.
-
-### Dynamic Routes & URL Prefixing Architecture
-
-- **Forbidden Root Dynamic Routes:** Dynamic parameters MUST NOT be placed directly at the root level of the `app/` directory (e.g., `src/app/[slug]/page.tsx` is strictly FORBIDDEN). Dynamic routes at the root collision-course with global pages, auth routes, and standard 404 fallbacks.
-
-- **Mandatory Entity Prefixes for Dynamic Segments:** All dynamic URL segments must be encapsulated within a clear, explicit parent directory prefix that isolates the entity type:
-  - **Catch-all / Redirection Shortcodes:** Use a dedicated short-prefix directory (e.g., `src/app/c/[shortCode]/page.tsx` for `/c/abc123`).
-  - **Domain Entities:** Use the plural entity name directory (e.g., `src/app/movies/[id]/page.tsx` or `src/app/users/[userId]/page.tsx`).
-
-- **Isolated Routing Context:** Never mix generic root-level routing with dynamic pattern matching. If a feature serves shortlinks, deep links, or user handles, it must explicitly live inside its own scoped namespace directory.
-
-## RESTful API Architecture (`app/api/`)
-
-API routes should follow standard REST conventions and be organized by resource.
+## RESTful API Architecture (`src/app/api/`)
 
 ### Resource Structure
 
-The following names are placeholders:
-
-- `{resource}` → any API resource (e.g. `users`, `projects`, `posts`, `orders`)
-- `[id]` → a dynamic resource identifier.
-
-Each resource should follow this structure:
-
 ```text
 app/api/
-└── {resource}/
-    ├── route.ts
+└── <resource_name>/
+    ├── route.ts        # Collection-level: GET (list), POST (create)
     └── [id]/
-        └── route.ts
+        └── route.ts    # Single resource: GET, PATCH, PUT, DELETE
 ```
-
-### Endpoint Responsibilities
-
-- `app/api/{resource}/route.ts`
-  - Handles collection-level operations.
-  - Typical methods include `GET` (list resources) and `POST` (create a resource).
-
-- `app/api/{resource}/[id]/route.ts`
-  - Handles operations on a single resource.
-  - Typical methods include `GET`, `PATCH`, `PUT`, and `DELETE`.
 
 ### Design Principles
 
-- Organize endpoints by business domain rather than HTTP methods.
-- Group all handlers for the same endpoint inside a single `route.ts` file.
-- Follow standard REST semantics whenever practical.
-- Resource names are project-specific and should be replaced with the appropriate entity names.
+- Organize endpoints by business domain, not by HTTP method.
+- Group all handlers for one endpoint inside a single `route.ts`.
+- Follow standard REST semantics wherever practical.
+- Resource names are project-specific — replace with the actual entity names.
 
-### API Endpoint Security and Route Protection
+### Endpoint Security & Route Protection
 
-#### Route Classification
-
-- **Public Endpoints:** Routes accessible without authentication (e.g., auth handlers, public webhooks). Must strictly validate incoming payloads with Zod.
-- **Protected Endpoints:** Routes requiring an active user session. Must verify user identity on the server before executing business logic and strictly validate incoming payloads with Zod.
-
-#### Server-Side Authentication Check
-
-- Every protected route handler inside `route.ts` MUST verify the user via the Supabase server client using `getUser()` (not `getSession()` for security reasons).
-- If no user is returned, immediately abort the execution and return a `401 Unauthorized` response.
-
-Example pattern inside handler:
+- **Public endpoints** (auth handlers, public webhooks, etc.): must strictly validate incoming payloads with Zod.
+- **Protected endpoints:** must verify user identity server-side before executing business logic, and strictly validate payloads with Zod.
+- Every protected route handler verifies the user via the Supabase server client using `getUser()` — **never** `getSession()`. If no user is returned, abort immediately with `401 Unauthorized`:
 
 ```ts
 const supabase = await createClient();
@@ -207,92 +194,33 @@ if (error || !user) {
 }
 ```
 
-#### Authorization and Resource Ownership
+- **Authorization vs. authentication:** authentication verifies _who_ the user is; authorization verifies _what_ they can access. Always confirm the authenticated `user.id` owns the requested resource (or holds the required role) before any mutation (`POST`/`PATCH`/`DELETE`) or read (`GET`).
 
-- Authentication verifies _who_ the user is; authorization verifies _what_ they can access.
-- Always check if the authenticated `user.id` owns the requested resource or possesses the required role before performing mutation (`POST`, `PATCH`, `DELETE`) or data retrieval (`GET`).
+_(The full API-route pipeline — Zod validation, delegation to the service layer, status codes, response shape — is standardized in Data Layer → API Routes + TanStack Query Pattern.)_
 
-# Extended Directory Structure (`src/`)
+---
 
-Inside the `src/` directory, besides `app/`, the following folders must be used strictly according to their purposes:
+## Component Architecture
 
-```text
-src/
-├── components/ # UI Components
-├── types/ # TypeScript interface & type definitions
-├── actions/ # Next.js Server Actions (Optional: used when TanStack Query is not applied)
-├── schemas/ # Zod validation schemas
-├── lib/ # Third-party client setups (e.g., Supabase client), constants, and utils
-├── hooks/ # Custom React hooks
-└── services/ # Data fetching & business logic for server side
-```
+All basic UI elements (inputs, buttons, dialogs, dropdowns, forms, badges, etc.) must be built on `shadcn/ui`. Never use native HTML controls (`<input>`, `<button>`, `<select>`) or custom elements when a `shadcn/ui` equivalent exists. Search component analogs at https://ui.shadcn.com/docs/components.
 
-## Directory Responsibilities
+Only primitives (buttons, fields, and similar controls) are used as building blocks — layout/container primitives like `VStack`/`HStack` or using `Card` as a layout shortcut are deliberately excluded because they rigidly constrain design. Layout is always plain `<div>`/`<section>` + Tailwind.
 
-1. `types/`
-   - Holds all shared TypeScript interfaces, types, and database models.
-   - Keep types modular and grouped by domain (e.g., `user.ts`, `links.ts`).
-
-2. `services/`
-   - Server-side data fetching and database query functions called by API routes.
-   - Encapsulates direct database/Supabase logic away from API route handlers.
-
-3. `schemas/`
-   - All Zod validation schemas for forms and API payload validation.
-
-4. `lib/`
-   - Third-party library initializations (e.g., Supabase client creation inside `lib/supabase/`).
-   - Shared helper utilities (e.g., `cn` utility for Tailwind) and global app constants.
-
-5. `hooks/`
-   - Reusable custom React hooks (`useDebounce`, `useMediaQuery`, etc.).
-
-6. `actions/`
-   - Next.js Server Actions for server-side mutations.
-   - Do NOT use Server Actions if data fetching and mutations are handled via TanStack Query and API routes. Use API routes with TanStack Query as the sole standard for data handling.
-
-# Server Actions vs. API Routes Strategy
-
-## Approach Selection Rule
-
-Before starting development, determine the data architecture pattern. Choose **ONLY ONE** pattern for the entire application. Do NOT mix Server Actions and API Routes / TanStack Query within the same project.
-
-1. **Default Pattern (Server Actions):**
-   - Use **Server Actions** for all data fetching, mutations, and form handling by default.
-   - Applies when the user has **NOT** explicitly requested API routes, TanStack Query, or mobile app compatibility.
-   - **Directory Naming:** Place all action functions inside an `actions/` directory.
-
-2. **API Routes & TanStack Query Pattern:**
-   - Use **API Routes (`app/api/`) combined with TanStack Query** ONLY IF the user explicitly specifies the need for REST API endpoints, TanStack Query, or future mobile application support requiring a shared backend API.
-   - **Directory Naming:** Place all API request functions / fetchers inside a `services/` directory.
-
-## Strict Rules
-
-- **No Hybrid Usage:** Stick strictly to the selected strategy across all features. Never use Server Actions alongside API routes for standard internal CRUD operations.
-- **Single Source of Truth:** If Server Actions are chosen, execute all server-side logic via actions in `actions/`. If API Routes are chosen, route all client-side data requests through `services/` to `app/api/` with TanStack Query.
-
-# Component Architecture Guidelines
-
-ALL basic UI elements (inputs, buttons, dialogs, dropdowns, forms, badges, etc.) MUST be built on top of `shadcn/ui`.
-NEVER use native HTML form controls (e.g., `<input>`, `<button>`, `<select>`) or custom elements if an equivalent `shadcn/ui` component exists.
-
-## Directory Structure
-
-Components are strictly organized into 4 logical layers inside the `components/` directory:
+### Directory Structure (4 Layers)
 
 ```text
 components/
-├── ui/                 # Raw shadcn/ui primitives (Unmodified)
-├── elements/           # Basic UI controls built on top of shadcn primitives
-│   ├── buttons/        # Custom buttons (e.g., button.tsx, icon-button.tsx)
-│   ├── fields/         # Form inputs, date pickers, select fields (e.g., text-field.tsx)
-│   ├── charts/         # Data visualization elements (e.g., bar-chart.tsx)
+├── ui/                 # Raw shadcn/ui primitives (unmodified)
+├── elements/           # Basic UI controls built on shadcn primitives
+│   ├── buttons/        # e.g. button.tsx, icon-button.tsx
+│   ├── fields/         # e.g. text-field.tsx, date pickers, selects
+│   ├── charts/         # e.g. bar-chart.tsx
 │   └── ...
 ├── composites/         # UI blocks built from elements
 │   ├── filters-panel/
 │   ├── notification-center/
 │   └── ...
-└── layout/             # Structural components that define app shell & navigation
+└── layout/             # App shell & navigation
     ├── app-shell/
     ├── header/
     ├── sidebar/
@@ -300,167 +228,73 @@ components/
     └── ...
 ```
 
-## Layer Definitions & Rules
+### Layer Definitions
 
-1. **Primitives (`components/ui/`)**
+1. **Primitives (`components/ui/`)** — installed via the shadcn/ui CLI only (never hand-copied from docs). Never edited for feature-specific logic, never used directly in pages/composites/layouts.
+2. **Elements (`components/elements/`)** — domain-specific wrappers over shadcn primitives, grouped by type (`buttons/`, `fields/`, `charts/`). Own internal styling, label positioning, validation error states, helper text.
+3. **Composites (`components/composites/`)** — compound components built from multiple elements (e.g. `notification-center/` combining buttons + popovers).
+4. **Layout (`components/layout/`)** — structural components only (`app-shell/`, `sidebar/`, `navigation/`), assembled from elements/composites.
 
-- Base components copied directly from `shadcn/ui` (e.g., `button.tsx`, `input.tsx`, `dialog.tsx`).
-- **Do NOT** edit these files directly for feature-specific logic.
-- **Do NOT** use primitives directly in pages, composites, or layouts.
+### Layering, Assembly & Styling Rules
 
-2. **Elements (`components/elements/`)**
+- **Directional imports:** hierarchy is `layout` → `composites` → `elements` → `ui`. A higher layer may import a lower one; a lower layer must never import a higher one.
+- **Check before creating:** before adding any new `ui`, `elements`, or `composites` component, check whether one already exists and reuse/extend it instead of duplicating.
+- **Never consume shadcn primitives raw:** each primitive (or small related group) must be wrapped in a dedicated `elements/` component owning its domain logic, labels, state, and error handling (e.g. `ui/input.tsx` + `ui/label.tsx` + `ui/form-message.tsx` → `elements/text-field.tsx`; the app uses `TextField`, never the raw parts).
+- **Pages are orchestrators:** `page.tsx` assembles only `composites` and `elements` — never raw HTML controls or raw shadcn primitives. If a combination of elements is used on one page only, assemble it inline in a plain `div`; promote it to a `composites` component only once the exact combination is duplicated across multiple pages/features.
+- **Layout components stay in layout:** `Header`, `Sidebar`, `Footer`, page shells, etc. are consumed only within the layout layer — never reused as building blocks inside feature pages or composites.
+- **No abstract layout primitives:** don't introduce `VStack`/`HStack`-style wrappers, and don't use shadcn's `Card` as a page-layout shortcut. Build page/section layout with plain `<div>`/`<section>` styled via Tailwind utilities (`flex`, `grid`, `gap-*`, `space-*`), placing your own `elements` components inside.
 
-- Domain-specific wrappers built on top of `shadcn/ui` primitives.
-- Grouped into subfolders by domain type (`buttons/`, `fields/`, `charts/`, etc.).
-- Encapsulate internal styling, label positioning, validation error states, helper text, and project UI patterns.
-- Example: custom `text-field.tsx` built from `ui/input.tsx` with built-in label and error handling.
+---
 
-3. **Composites (`components/composites/`)**
+## Data Layer
 
-- Compound UI components constructed by combining multiple `elements`.
-- Examples: `notification-center/` (combines buttons, popovers), `filters-panel/`, or complete reusable forms (`user-form/`).
+### Pattern Selection
 
-4. **Layout (`components/layout/`)**
+Pick **exactly one** pattern for the entire application. Server Actions and API Routes/TanStack Query must never be mixed for standard internal CRUD.
 
-- Structural components responsible solely for application layout and navigation structure.
-- Includes `app-shell/`, `sidebar/`, and `navigation/`.
-- Assembled using components from `elements/` and `composites/`.
+**Default — Server Actions:**
 
-## Rules for Component Creation & Page Assembly
+- Use for all data fetching, mutations, and form handling by default.
+- Applies whenever the user has **not** explicitly requested API routes, TanStack Query, or mobile-app compatibility requiring a shared backend.
+- Action functions live in `actions/`. No `services/` folder exists in this pattern — validation, business logic, and DB calls all live inside the action.
 
-### 1. Component Layering & Directional Imports
+**Alternative — API Routes + TanStack Query:**
 
-- **Layer Hierarchy:** `layout` → `composites` → `elements` → `ui`.
-- **Strict Directional Imports:** Higher layers can import from lower layers. Lower layers MUST NEVER import from higher layers.
-- **Check Existing:** Before creating a new UI control, check if a primitive exists in `components/ui/`. If so, wrap it in `components/elements/`.
-- **No Duplication:** Never duplicate primitive or element logic inside feature folders. Always prefer higher-level wrappers from `components/elements/` over raw primitives from `components/ui/`.
+- Use **only** when explicitly requested: REST endpoints, TanStack Query, or future mobile-app support needing a shared backend API.
+- Server-side business logic and DB calls (what API routes delegate to) live in `services/`. No `actions/` folder exists in this pattern.
 
-### 2. Custom Encapsulation over Direct Primitives
+**Strict rules:**
 
-- Do NOT use raw Shadcn primitives directly without domain context.
-- Before using a UI control (e.g., input, select, modal), encapsulate Shadcn primitives with their associated logic, labels, and state into dedicated wrapper components (e.g., combining Shadcn `Input`, `Label`, and `FormMessage` into a single reusable field component).
+- **No hybrid usage:** stick to the selected pattern across every feature.
+- **Single source of truth:** Server Actions → all server logic through `actions/`. API Routes → client requests flow `services/` → `app/api/`, orchestrated by TanStack Query.
 
-### 3. Page Assembly Rules
+_(Full pipeline details for each pattern are below, in Server Actions Pattern and API Routes + TanStack Query Pattern.)_
 
-- Pages (`page.tsx`) must strictly act as orchestrators of feature components.
-- Do NOT place raw HTML elements (e.g., `<input>`, `<button>`) or unencapsulated Shadcn primitives directly inside page files. Assemble pages using high-level feature components and elements only.
+### Shared Standards (both patterns)
 
-### 4. Layout Structure & Styling
+These rules apply regardless of which pattern was selected above.
 
-- Do NOT use abstract layout components like `VStack`, `HStack`, or custom layout primitives.
-- Use standard HTML `div` elements styled strictly with Tailwind CSS (`flex`, `grid`, `gap-*`, `space-*`) for page and section layouts.
+**Environment & client setup:**
 
-# Domain-Driven File Organization & Naming Rules
+- All code in `services/` or `actions/` (whichever exists — see Pattern Selection) runs strictly on the server.
+- Every file in `actions/` must start with the `'use server'` directive.
+- `src/lib/` (e.g. `lib/supabase/`, `lib/utils.ts`) contains **only** low-level infra: SDK initializers (`createClient()`) and static helpers. Never put DB queries, Supabase domain requests, or auth calls (`getUser()`, `getSession()`) in `lib/` — those belong in `services/` or `actions/`.
 
-## Core Modular Philosophy
+**Standardized response format:**
 
-- Avoid Micro-Files: Do NOT create separate files for every single function or entity. Group related logic by module/domain into unified files (e.g., auth.ts, links.ts).
-- Module Coverage: A single file must contain all closely related operations for that feature (e.g., auth.ts inside services/ contains login, logout, refreshToken, etc.).
-
-## File Naming Standard
-
-- kebab-case ONLY: All files and folders across the project must strictly use lower-case letters with hyphens.
-- Pattern: domain.ts or domain-submodule.ts (e.g., auth.ts, auth-oauth.ts, links-analytics.ts).
-
-## Code Naming Conventions
-
-### 1. Types & Interfaces (types/)
-
-- File Naming: kebab-case (e.g., links.ts, auth-credentials.ts).
-- Type/Interface Names: PascalCase (Capitalize every word).
-  Example:
-  ```ts
-  export type DashboardStats = { ... };
-  export interface UserProfile { ... }
-  ```
-
-### 2. Services & Actions (services/, actions/)
-
-- File Naming: kebab-case (e.g., auth.ts, links-management.ts).
-- Function Names: camelCase.
-  Example:
-  ```ts
-  export const loginUser = async () => { ... };
-  export const generateShortLink = async () => { ... };
-  ```
-
-### 3. Zod Schemas (schemas/)
-
-- File Naming: kebab-case (e.g., auth.ts, links.ts).
-- Schema Object Names: camelCase (usually ending with Schema).
-  Example:
-  ```ts
-  export const loginSchema = z.object({ ... });
-  export const createLinkSchema = z.object({ ... });
-  ```
-
-### 4. Constants (lib/ or modular files)
-
-- File Naming: kebab-case (e.g., auth-constants.ts, api-routes.ts).
-- Constant Names: UPPER_SNAKE_CASE (All capital letters with underscores).
-  Example:
-  ```ts
-  export const MAX_RETRY_ATTEMPTS = 3;
-  export const AUTH_COOKIE_NAME = 'session_token';
-  ```
-
-### 5. Custom Hooks (hooks/)
-
-- File Naming: kebab-case with use- prefix (e.g., use-auth.ts, use-debounce.ts).
-- Hook Function Names: camelCase starting with use.
-  Example:
-  ```ts
-  export const useAuth = () => { ... };
-  ```
-
-# Interface & UI Copy Guidelines
-
-## Language & General Tone
-
-- All user interface texts (labels, buttons, titles, messages) MUST be written in English.
-- Never use generic onboarding greetings like "Welcome to platform...", "Hello user", etc.
-- Keep copy rational, clear, concise, and without decorative embellishments.
-
-## Headlines & Subtitles
-
-- **Titles:** Short enough to fit on a single line. Never end titles with a period. Do NOT use punctuation inside titles (`-`, `:`, `;`, `,`, `(`, `)`).
-- **Subtitles:** Act as a direct sentence continuation of the title. Must end with a period.
-
-## Controls & Labels
-
-- All interactive controls (buttons, placeholders, field labels, navigation) use Title Case with only the first letter capitalized (e.g., "New user").
-- Never end control labels with periods.
-- For creation actions, prefer "New [Entity]" over "Add new [Entity]" (e.g., "New location", "New user").
-
-## Navigation & Menus
-
-- Keep menu and navigation items strictly 1 to 3 words maximum (prefer single-word items like "Users", "Locations", "Dashboard").
-
-# Server Services/Actions Standards
-
-All server-side business logic and database interactions must strictly adhere to the following conventions:
-
-## 1. Environment & Client Setup
-
-- All functions inside `services/`, `actions/` execute strictly on the server.
-- All `actions/` files MUST include the `'use server'` directive at the top of the file to execute strictly on the server.
-- Files inside `src/lib/` (e.g., `lib/supabase/`, `lib/utils.ts`) MUST ONLY contain low-level infrastructure setup, SDK initializers (e.g., `createClient()`), and static helpers.
-- NEVER put database queries, Supabase domain requests, or auth logic (e.g., `getUser()`, `getSession()`) inside `lib/`. Any function that interacts with application data or auth state MUST reside strictly inside `services/` or `actions/`.
-
-## 2. Standardized Response Format
-
-- Services MUST NEVER throw unhandled errors. Always return a result object.
-- Functions returning data MUST use: `Promise<ServiceResponse<T>>`.
+- Services never throw unhandled errors — always return a result object.
+- Data-returning functions: `Promise<ServiceResponse<T>>`
   - Success: `{ data: T, error: null }`
   - Failure: `{ data: null, error: string }`
-- Simple action functions (e.g., login, logout) MUST return:
+- Simple actions (login, logout, etc.):
   - Success: `{ error: null }`
   - Failure: `{ error: string }`
+- This `{ data, error }` shape is preserved end-to-end, from the database up to the UI (and across API responses in the API-routes pattern).
+- Never return raw primitives or bare nullable types from actions/services (e.g. `Promise<string | null>`, `Promise<boolean>`) — always wrap in `ServiceResponse<T>` (or `ServiceResult<T>`).
 
-## 3. User Authentication & Security
+**Authentication & authorization:**
 
-- To protect sensitive data, protected service/action functions MUST call the reusable `getUser()` helper to verify authorization before executing queries.
-- Perform an early return if authentication fails:
+- Every protected service/action calls the reusable `getUser()` helper first and returns early on failure:
 
 ```ts
 const { data: user, error: userError } = await getUser();
@@ -468,227 +302,199 @@ if (userError || !user)
   return { data: null, error: userError || 'Unauthorized' };
 ```
 
-- Explicitly chain `.eq('user_id', user.id)` on database queries to ensure strict tenant data isolation.
+- Never trust a `user_id` passed from the client — always override it with the authenticated `user.id` from the session.
+- Always chain `.eq('user_id', user.id)` on queries to enforce tenant/ownership isolation.
 
-## 4. Input Handling & Typing
+_(For raw route-handler-level auth checks against `supabase.auth.getUser()` directly, see RESTful API Architecture → Endpoint Security & Route Protection.)_
 
-- Input validation (e.g., Zod) MUST be performed at the route level before reaching the service layer.
-- Input validation (e.g., Zod) MUST be performed directly inside the action before proceeding with any business logic.
-- All returned data structures and arguments must be strongly typed using domain types from `src/types/`.
+**Typing:**
 
-## 5. Defensive Flow & Error Handling
+- Arguments and return values are strongly typed end-to-end using domain interfaces from `src/types/`, from DB model to UI (see Types & Zod Schemas for type-naming standards).
 
-- **Error Handling & Flow Control:**
-  - Prevent crashes by explicitly checking for missing data or query errors using early returns (e.g., `if (error) return ...`).
-  - **API Routes Architecture:** Route handlers (`route.ts`) act purely as data validators (e.g., Zod) and HTTP response adapters. The actual business logic and `try / catch` blocks MUST reside inside the service functions (`services/`).
-  - **Server Actions Architecture:** Every Server Action inside `actions/` MUST wrap its entire logic within a `try / catch` block directly inside the action function itself.
+**Validation & error handling:**
+
+- Zod validation is always required before any business logic or DB query runs — _where_ it happens differs by pattern (see below).
+- Every catch block returns the same shape:
 
 ```ts
 catch (error) {
-    return { data: null, error: error instanceof Error ? error.message : 'Unknown server error' };};
+  return { data: null, error: error instanceof Error ? error.message : 'Unknown server error' };
+}
 ```
 
-# API Route Handlers Standards (`src/app/api/`)
+### Server Actions Pattern
 
-All API routes (`route.ts`) must act strictly as thin entry points that map HTTP requests to service layer calls:
+_Applies only when the Server Actions pattern is selected._
 
-## 1. Responsibilities
+**Pipeline:**
 
-- Route handlers MUST NOT contain database calls or complex business logic.
-- They are strictly responsible for:
-  1. Parsing and validating the incoming HTTP request.
-  2. Delegating execution to the appropriate service function from `src/services/`.
-  3. Formatting and returning standard `NextResponse.json` responses with appropriate HTTP status codes.
+```
+Client Component (Form / useActionState / useTransition)
+  └──> Server Action (src/actions/)
+       └──> Zod validation, inside the action, before any DB/business logic
+            └──> Server-side business logic & DB / Supabase
+                 └──> Returns { data, error } directly to the client
+```
 
-## 2. Request Parsing & Zod Validation
+**Key rules:**
 
-- Always validate incoming payloads using Zod schemas via `.safeParse()`:
-- On validation failure, extract the first clear error message and return HTTP `400`:
-  `const errorMessage = parsed.error.issues[0]?.message || 'Validation error';`
-  `return NextResponse.json({ data: null, error: errorMessage }, { status: 400 });`
+- Validation happens directly inside the action, before any query executes.
+- The action's entire body is wrapped in a single `try / catch` (see Shared Standards → Validation & Error Handling), with early returns on validation or Supabase errors.
+- Every protected action performs an explicit session check (`await supabase.auth.getUser()`) at the very start, before any other logic.
+- There is no `services/` layer — the action itself is the full pipeline.
 
-## 3. Standardized Status Codes & Responses
+### API Routes + TanStack Query Pattern
 
-- Map service layer results to proper HTTP status codes:
-  - **200 OK:** Successful `GET` or non-creation action (e.g., login, logout).
-  - **201 Created:** Successful resource creation (`POST`).
-  - **400 Bad Request:** Validation failure, invalid JSON, or standard business error.
-  - **401 Unauthorized:** If the service error message explicitly equals `'Unauthorized'`.
+_Applies only when this pattern is selected._
 
-## 4. Consistent Response Payload Structure
+**Pipeline:**
 
-- Endpoints returning data MUST respond with: `{ data, error }`.
-- Simple action endpoints (e.g., auth actions) respond with: `{ error }`.
-
-# Client Data Fetching Standards (`TanStack Query`)
-
-If the **API Routes & TanStack Query** architecture pattern is selected, all client-side async operations, caching, and state updates must strictly follow these TanStack Query standards:
-
-## 1. Query vs Mutation Division
-
-- **Use `useQuery`** exclusively for fetching and reading data (`GET` requests).
-- **Use `useMutation`** for actions, data creation, updates, or deletions (`POST`, `PUT`, `DELETE`).
-
-## 2. Error Handling & Throw Pattern
-
-- Inside `queryFn` and `mutationFn`, always verify `response.ok`.
-- If `!response.ok`, parse the JSON error and explicitly throw a Javascript `Error`:
-  `if (!response.ok) throw new Error(error || 'Default fallback message');`
-
-## 3. Query Keys Architecture
-
-- Structure `queryKey` as an array with clear hierarchical parameters:
-  `queryKey: ['resource-domain', dynamicParam]` (e.g., `['dashboard-stats', period]`).
-
-## 4. Cache Invalidation & Post-Mutation Actions (`onSuccess`)
-
-- Upon successful mutations (`onSuccess`), invalidate impacted query keys using `queryClient.invalidateQueries({ queryKey: [...] })` to trigger an automatic UI refresh..
-
-# API Routes & TanStack Query Data Architecture
-
-> **Applicability:** Follow this architecture ONLY when the **API Routes & TanStack Query** pattern is selected for the project.
-
-## 1. Unified Data Flow Pipeline
-
-All data requests and mutations across the application must strictly flow through this multi-layered pipeline:
-
+```
 Client Component (TanStack Query)
-└──> HTTP Request (GET/POST/PATCH/DELETE with payload or params)
-└──> API Route Handler (`src/app/api/`)
-└──> Validation Layer (Zod schema parse inside route handler)
-└──> Service Layer (`src/services/`)
-└──> Database / Supabase
-└──> Returns `{ data, error }` payload back up the chain
+  └──> HTTP request (GET/POST/PATCH/DELETE)
+       └──> API Route Handler (src/app/api/)
+            └──> Zod validation, inside the route handler
+                 └──> Service Layer (src/services/)
+                      └──> Database / Supabase
+                           └──> Returns { data, error } back up the chain
+```
 
-### Key Rules of the Pipeline
+**Route handlers (`route.ts`):** thin HTTP adapters only — no DB calls, no business logic. Responsibilities:
 
-- **Strict Validation:** Every incoming parameter, query string, or body payload MUST be validated via Zod schemas inside the API route handler BEFORE calling the service layer.
-- **Service Isolation:** Route handlers (`route.ts`) only handle HTTP protocol concerns (request parsing, validation, HTTP status codes). Business logic, `try / catch` blocks, and database queries MUST reside inside `src/services/`.
-- **End-to-End Typing:** Data contracts must remain fully typed from the database model to the UI using domain interfaces from `src/types/`.
-- **Consistent Response Schema:** Data passes through all layers wrapped in the standardized `{ data, error }` structure.
+1. Parse and validate the request via Zod `.safeParse()`.
+2. Delegate execution to the matching `src/services/` function.
+3. Map the result to `NextResponse.json` with the right status code.
 
-## 2. Security & Public Data Isolation (Supabase)
+On validation failure, return 400 with the first issue message:
 
-- **Tenant Data Leak Protection:** Be extremely cautious when handling endpoints accessible to unauthenticated or public users. Unauthenticated users must NEVER be able to query internal application tables directly or access private user records.
-- **RPC / Stored Procedures for Public Access:**
-  - For operations where non-authenticated users need restricted data access, DO NOT perform direct `.select()` queries on sensitive tables.
-  - Use custom PostgreSQL functions via Supabase RPC (`supabase.rpc('function_name', { params })`) to encapsulate access logic, enforce database-level security policies, and expose ONLY the exact properties allowed for public consumption.
-- **Explicit Authorization Checks:** Any protected service operating on behalf of a user MUST explicitly filter queries by `user_id` (`.eq('user_id', user.id)`).
+```ts
+const errorMessage = parsed.error.issues[0]?.message || 'Validation error';
+return NextResponse.json({ data: null, error: errorMessage }, { status: 400 });
+```
 
-# Server Actions Data Architecture
+Business logic and `try / catch` blocks live in the service function, not the route.
 
-> **Applicability:** Follow this architecture ONLY when the **Default (Server Actions)** pattern is selected for the project.
+**Status codes:**
 
-## 1. Unified Data Flow Pipeline
+- `200 OK` — successful `GET` or non-creation action (login, logout, etc.)
+- `201 Created` — successful `POST` (resource creation)
+- `400 Bad Request` — validation failure, invalid JSON, or business error
+- `401 Unauthorized` — service error message is exactly `'Unauthorized'`
 
-All mutations and server-side data requests across the application must strictly flow through this pipeline:
+Data endpoints respond `{ data, error }`; simple action endpoints (e.g. auth) respond `{ error }`.
 
-Client Component (Form / `useActionState` / `useTransition`)
-└──> Server Action Call (`src/actions/`)
-└──> Validation Layer (Zod schema parse inside action)
-└──> Server-Side Business Logic & Database / Supabase
-└──> Returns `{ data, error }` payload directly to the client
+**Supabase security & public data isolation:**
 
-### Key Rules of the Pipeline
+- Unauthenticated/public users must never query internal tables or private records directly.
+- For any public/unauthenticated access to restricted data, use a Postgres function via `supabase.rpc('function_name', { params })` instead of a direct `.select()` on sensitive tables — this enforces DB-level access control and exposes only the allowed fields.
+- Protected service operations must explicitly filter by `user_id` (see Shared Standards → Authentication & Authorization).
 
-- **Mandatory Directive:** Every action file in `src/actions/` MUST include the `'use server'` directive at the very top.
-- **In-Action Validation:** Input parameters MUST be validated using Zod schemas directly inside the Server Action BEFORE executing any database queries or business logic.
-- **Error Handling:** Every Server Action MUST wrap its entire logic in a `try / catch` block directly inside the action function and return early on validation or Supabase errors.
-- **End-to-End Typing:** Arguments and return values must be strictly typed using domain interfaces from `src/types/`.
-- **Consistent Response Schema:** All actions MUST return a standardized result object formatted as `{ data: T | null, error: string | null }`.
+**Client data fetching (TanStack Query):**
 
-## 2. Security & Authorization in Actions
+- `useQuery` for reads (`GET`) only; `useMutation` for creates/updates/deletes (`POST`/`PUT`/`DELETE`).
+- Inside `queryFn`/`mutationFn`, check `response.ok`; if false, parse the JSON error and throw:
 
-- **Server-Side Identity Check:** Every protected Server Action MUST perform an explicit session check via Supabase server client (`await supabase.auth.getUser()`) at the very beginning of execution.
-- **Tenant Data Leak Protection:** Never trust arguments passed from the client; always override `user_id` with the authenticated `user.id` retrieved from the server session.
-- **Explicit Ownership Filtering:** Always enforce resource ownership at the database query level using `.eq('user_id', user.id)`.
+```ts
+if (!response.ok) throw new Error(error || 'Default fallback message');
+```
 
-# Types Architecture & Zod Integration (`src/types/` & `src/schemas/`)
+- Query keys are hierarchical arrays: `queryKey: ['resource-domain', dynamicParam]` (e.g. `['dashboard-stats', period]`).
+- On successful mutations, invalidate affected keys in `onSuccess`: `queryClient.invalidateQueries({ queryKey: [...] })`.
 
-## 1. Type Inference from Zod Schemas
+---
 
-- **Avoid Type Duplication:** For form inputs, API payload interfaces, and request parameters, NEVER manually define a separate TypeScript `type` or `interface` alongside a Zod schema.
-- **Use `z.infer`:** Derive TypeScript types directly from Zod schemas using `z.infer<typeof schema>`.
-  Example:
-  ```ts
-  export const authSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
-  });
-  export type AuthInput = z.infer<typeof authSchema>;
-  ```
+## Types & Zod Schemas
 
-## 2. Domain Types & Built-in Auth Types
+### Type Inference from Zod
 
-- **Built-in System Types:** Use standard SDK types for built-in Supabase systems (e.g., import `User` directly from `@supabase/supabase-js`).
-- **Custom Application Tables:** For custom user-created database tables, DO NOT rely on auto-generated database types. Handcraft clean, dedicated interfaces inside `src/types/` (e.g., `src/types/links.ts`).
+- Never manually duplicate a TypeScript `type`/`interface` alongside a Zod schema for form inputs, API payloads, or request params.
+- Derive types directly with `z.infer<typeof schema>`:
 
-## 3. Interface Preference
+```ts
+export const authSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+export type AuthInput = z.infer<typeof authSchema>;
+```
 
-- Prefer `interface` over `type`. Use `type` ONLY when explicit typing cannot be achieved with an interface (e.g., union types, primitive aliases, utility mapping) or when it significantly reduces code boilerplate.
+### Domain Types vs. Built-in Auth Types
 
-## 4 Interface & Type Naming Standards
+- Use standard SDK types for built-in Supabase systems (e.g. import `User` directly from `@supabase/supabase-js`).
+- For custom application tables, don't rely on auto-generated database types — handcraft clean, dedicated interfaces inside `src/types/` (e.g. `src/types/links.ts`).
 
-- **No Hungarian Notation & Generic Suffixes:** Never prefix interfaces with `I` (e.g., `IUser`) or attach redundant suffixes like `Interface` or `Type` (e.g., `UserInterface`, `UserType`). Use clean, singular nouns representing the domain model (e.g., `User`, `Project`, `Invoice`).
+### Interface vs. Type
 
-- **No Direct Primitive Return Types:** Server Actions and Service layer functions MUST NOT return raw primitives or nullable types directly (e.g., `Promise<string | null>`, `Promise<boolean>`). Always wrap return types in the standardized generic response structure (`Promise<ServiceResponse<T>>` or `Promise<ServiceResult<T>>`).
+- Prefer `interface` over `type`. Use `type` only when an interface can't express it (union types, primitive aliases, utility mapping) or it meaningfully reduces boilerplate.
 
-- **Contextual & Intent-Driven Suffixes:** When an interface represents a specific context rather than a raw database entity, append a clear functional suffix:
-  - **Component Props:** `<Name>Props` (e.g., `UserCardProps`, `SidebarProps`).
-  - **Forms & Inputs:** `<Name>FormValues` or `<Action><Entity>Input` (e.g., `CreateProjectInput`, `UserFormValues`).
-  - **API Payloads & Responses:** `<Action><Entity>Payload` or `<Action><Entity>Response` (e.g., `UpdateUserPayload`, `FetchProjectsResponse`).
+### Naming Standards
 
-# Security, Environment Variables & Supabase Server Isolation
+- **No Hungarian notation / generic suffixes:** never prefix with `I` (`IUser`) or suffix with `Interface`/`Type` (`UserInterface`, `UserType`). Use clean singular nouns (`User`, `Project`, `Invoice`).
+- **No raw primitive returns:** Server Actions and service functions must not return raw primitives/nullables directly — always wrap in `Promise<ServiceResponse<T>>` (see Data Layer → Standardized Response Format).
+- **Contextual suffixes** for non-entity interfaces:
+  - Component props: `<Name>Props` (`UserCardProps`, `SidebarProps`)
+  - Forms/inputs: `<Name>FormValues` or `<Action><Entity>Input` (`CreateProjectInput`, `UserFormValues`)
+  - API payloads/responses: `<Action><Entity>Payload` / `<Action><Entity>Response` (`UpdateUserPayload`, `FetchProjectsResponse`)
 
-## 1. Environment Secrets Management (`.env.local`)
+---
 
-- All API keys, connection strings, and service secrets MUST reside strictly in `.env.local`.
-- `.env.local` MUST be declared inside `.gitignore` to prevent secret leaks to version control repositories.
-- NEVER hardcode secrets, service roles, or API credentials directly into source code.
+## Code Style: Functions & Variable Naming
 
-## 2. Strict Server-Side Supabase Execution
+### Function Syntax
 
-- All Supabase interactions MUST execute strictly on the server (inside server actions or service functions).
-- **Browser Client Explicitly Banned:** Creation or usage of a browser/client-side Supabase instance (e.g., `createBrowserClient` or exposing supabase SDK to client components) is STRICTLY FORBIDDEN.
-- Keeping Supabase logic strictly on the server guarantees that database operations and private keys remain completely isolated from the user's browser runtime.
+- **Components:** standard function declarations (`function ComponentName() {...}`).
+- **Internal logic/handlers:** arrow functions for helpers, event handlers, callbacks inside components (`const handleClick = () => {...}`).
 
-# Global Architecture: Providers & Layout Setup (`src/providers/` & `src/app/layout.tsx`)
+### Variable Naming
 
-## 1. Modular Providers Architecture (`src/providers/`)
+- **Descriptive & self-explanatory:** e.g. `isUserAuthenticated` not `auth`, `activeProjectList` not `data`.
+- **Booleans:** prefix with `is`, `has`, `should`, `can` (`isLoading`, `hasPermission`, `shouldRedirect`, `canEdit`).
+- **Event handlers:** `handle` prefix internally, `on` prefix for props (prop: `onSave`, handler: `handleSave`).
+- **No abbreviations:** spell names out fully (`userIndex` not `idx`, `request`/`response` not `req`/`res`, `element` not `el`, `button` not `btn`).
 
-- Each global provider (e.g., TanStack Query Provider, Theme Provider, Toast Provider) MUST be placed in its own separate file inside `src/providers/`.
-- All provider files MUST explicitly include the `'use client'` directive at the top.
-- DO NOT stack or declare multiple providers inside a single file.
+---
 
-## 2. Root Layout Integration (`src/app/layout.tsx`)
+## Forms (React Hook Form + Zod)
 
-- Import and wrap the application tree with global providers strictly inside the **root layout** (`src/app/layout.tsx`). Global providers MUST NEVER be placed inside nested layouts (e.g., section-level, route group, or feature layouts).
-- `src/app/layout.tsx` MUST remain a Server Component. DO NOT convert the root layout into a Client Component to render providers.
+- All forms must be managed with `react-hook-form` paired with Zod validation. Manual field state via `useState` is strictly prohibited.
+- Never extract or keep `<Controller>` logic outside the input component or in parent wrappers — every custom input/select/checkbox/field component encapsulates its own `Controller` internally. Parent forms only pass `control`, `name`, and field-specific props down.
 
-# Function Syntax & Variable Naming Standards
+---
 
-### 1. Function Syntax Conventions
+## Security & Environment Variables
 
-- **Component Definitions:** Use standard function declarations for all React component definitions (`function ComponentName() { ... }`).
-- **Internal Logic & Handlers:** Use arrow functions for helper functions, event handlers, and callbacks defined inside components (`const handleClick = () => { ... }`).
+### Secrets Management
 
-### 2. Variable Naming Conventions
+- All API keys, connection strings, and service secrets live strictly in `.env.local`.
+- `.env.local` must be declared in `.gitignore`.
+- Never hardcode secrets, service roles, or API credentials in source code.
 
-- **Self-Explanatory & Descriptive:** Variable names must clearly convey their intent and content without needing comments (e.g., `isUserAuthenticated` instead of `auth`, `activeProjectList` instead of `data`).
-- **Boolean Variables:** Prefix boolean variables and flags with clear modal or state verbs (`is`, `has`, `should`, `can`):
-  - `isLoading`, `hasPermission`, `shouldRedirect`, `canEdit`
-- **Event Handlers:** Name event handler functions with the `handle` prefix, and props accepting handlers with the `on` prefix:
-  - Component prop: `onSave`
-  - Internal handler: `handleSave`
-- **No Abbreviations:** Avoid cryptical abbreviations, shortcuts, or single-letter names in variables, arguments, and function definitions. Variable names must be spelled out fully to clearly explain their purpose (e.g., `userIndex` instead of `idx`, `request` instead of `req`, `response` instead of `res`, `element` instead of `el`, `button` instead of `btn`).
+### Strict Server-Side Supabase Execution
 
-# Strict Form Architecture Rules (React Hook Form & Controller)
+- All Supabase interactions execute strictly on the server (server actions or service functions).
+- Creating or using a browser/client-side Supabase instance (`createBrowserClient`, exposing the SDK to client components) is strictly forbidden.
 
-1. **Mandatory React Hook Form Standard:**
-   - ALL forms MUST be managed strictly using `react-hook-form` paired with `zod` schema validation.
-   - Direct manual state management (`useState` for form fields) is STRICTLY PROHIBITED.
+---
 
-2. **Self-Contained Encapsulated Controllers:**
-   - NEVER extract or keep `<Controller>` logic outside of the input component or in parent wrapper components.
-   - EVERY custom UI input, select, checkbox, or field component MUST encapsulate its own `Controller` inside itself.
-   - The parent form component should only pass the `control` object, `name`, and field-specific props down to the child component.
+## UI Copy Guidelines
+
+### Language & Tone
+
+- All interface text (labels, buttons, titles, messages) is in English. No localization/i18n at this stage.
+- No generic onboarding greetings ("Welcome to platform...", "Hello user").
+- Copy is rational, clear, concise, and undecorated.
+
+### Headlines & Subtitles
+
+- **Titles:** short enough for one line; never end with a period; no punctuation inside (`-`, `:`, `;`, `,`, `(`, `)`).
+- **Subtitles:** a direct sentence continuation of the title; must end with a period.
+
+### Controls & Labels
+
+- Interactive controls (buttons, placeholders, field labels, nav) use Title Case with only the first letter capitalized (e.g. "New user").
+- Never end control labels with a period.
+- For creation actions, prefer "New [Entity]" over "Add new [Entity]" (e.g. "New location", "New user").
+
+### Navigation & Menus
+
+- Menu/navigation items are 1–3 words max; prefer single words ("Users", "Locations", "Dashboard").
