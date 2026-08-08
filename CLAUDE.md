@@ -1,6 +1,6 @@
 # CLAUDE.md — Project Engineering Standards
 
-**Contents:** Maintenance Protocol · Tech Stack · Directory Structure · Routing & Access Control · RESTful API Architecture · Component Architecture · Data Layer · Types & Zod Schemas · Code Style · Forms · Security & Environment Variables · UI Copy Guidelines
+**Contents:** Maintenance Protocol · Ticket Interpretation · Tech Stack · Directory Structure · Routing & Access Control · RESTful API Architecture · Component Architecture · Data Layer · Types & Zod Schemas · Code Style · Forms · Security & Environment Variables · UI Copy Guidelines
 
 ---
 
@@ -16,6 +16,14 @@ This file is read at the start of every session as the project's rule set — tr
   3. Never add a numbered section header (`## 1.`, `### 2.3`, etc.) — headers stay name-only, and cross-references point to header names in bold, never numbers (see why in git history / ask the user if unclear — a past renumbering silently broke every `§N` reference in this file).
 - **Before adding, check for conflicts.** If the new rule contradicts or overlaps an existing one, point out the conflict and ask how to resolve it rather than silently adding a duplicate or contradictory bullet.
 - **No unsolicited restructuring.** Bulk reorganizations (like the one that produced this file) happen only when the user explicitly asks for them — not as a side effect of adding one rule.
+
+---
+
+## Ticket Interpretation
+
+- Tickets are written by someone who doesn't know this codebase's architecture — treat a ticket as a statement of the required **outcome** (what must be true, what the user must be able to do), not as a literal implementation spec. How that outcome is achieved is an engineering decision, made using this file and the existing codebase — not by transcribing the ticket's wording into code or prose one line at a time.
+- **Check for existing functionality before implementing.** A described behavior may already fall out of the current architecture (an existing form's validation mode, a shared schema, a redirect already wired elsewhere). If it does, don't add redundant code, don't duplicate logic to "cover" it a second time, and don't write filler text declaring it done — just recognize it's already satisfied and move on.
+- Acceptance criteria describe what must hold true when the ticket is finished, not a one-for-one checklist of separate features to build — one existing mechanism can already satisfy several stated criteria at once.
 
 ---
 
