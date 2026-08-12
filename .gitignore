@@ -42,3 +42,5 @@ next-env.d.ts
 
 # opencode config
 opencode.json
+
+.claude

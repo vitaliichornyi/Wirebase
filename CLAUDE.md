@@ -120,8 +120,8 @@ src/
 
 ### Providers & Root Layout
 
-- Each global provider (TanStack Query Provider, Theme Provider, Toast Provider, etc.) lives in its own file inside `src/providers/`.
-- Every provider file must start with `'use client'`.
+- `src/providers/` is for providers that own actual setup/config code (e.g. TanStack Query Provider instantiating a `QueryClient`, a Theme Provider managing theme state) — each one lives in its own file, starting with `'use client'`.
+- **Don't wrap a provider that needs no setup.** If a third-party client primitive (e.g. a UI library's `TooltipProvider`) is used with zero extra config — no wrapping element, no options, just the import — render it directly in `src/app/layout.tsx` instead of creating a pass-through file in `src/providers/` that adds no code of its own. A Server Component can render a Client Component directly, so no wrapper is needed to cross that boundary.
 - Never stack multiple providers in a single file.
 - Global providers are wired up **only** in the root layout (`src/app/layout.tsx`) — never in nested/section/feature layouts.
 - `src/app/layout.tsx` must remain a Server Component; never convert it to a Client Component to render providers.
@@ -147,6 +147,7 @@ src/
 
 - **Public (unprotected):** accessible without authentication — landing page, login, register, docs, etc. `app/page.tsx` may represent any public entry point depending on the project.
 - **Protected:** accessible only to authenticated users. Contains the main application, with its own shared `layout.tsx` for the app shell (Sidebar, Header, Navigation). All authenticated pages live here.
+- **"All authenticated pages live here" means one real folder, not a route group.** The protected area is a single top-level feature folder whose `page.tsx` is the post-login landing page (e.g. `app/dashboard/`) — its `layout.tsx` is the shared app shell, and every other protected page nests inside that same folder (`app/dashboard/wires/page.tsx` → `/dashboard/wires`, `app/dashboard/settings/page.tsx` → `/dashboard/settings`), never as a sibling top-level folder. Do not reach for a Next.js route group (`(name)/`) to share the shell across sibling folders instead — the protected area's URLs should read as one product section, not several unrelated top-level ones.
 
 ### Authentication Routing
 
@@ -214,47 +215,57 @@ All basic UI elements (inputs, buttons, dialogs, dropdowns, forms, badges, etc.)
 
 Only primitives (buttons, fields, and similar controls) are used as building blocks — layout/container primitives like `VStack`/`HStack` or using `Card` as a layout shortcut are deliberately excluded because they rigidly constrain design. Layout is always plain `<div>`/`<section>` + Tailwind.
 
-### Directory Structure (4 Layers)
+### Directory Structure (3 Layers)
 
 ```text
 components/
-├── ui/                 # Raw shadcn/ui primitives (unmodified)
-├── elements/           # Basic UI controls built on shadcn primitives
-│   ├── buttons/        # e.g. button.tsx, icon-button.tsx
-│   ├── fields/         # e.g. text-field.tsx, date pickers, selects
-│   ├── charts/         # e.g. bar-chart.tsx
+├── ui/            # Raw shadcn/ui primitives (unmodified)
+├── elements/      # Basic UI controls built on shadcn primitives — flat, no subfolders
+│   ├── avatar.tsx
+│   ├── button.tsx
+│   ├── icon-button.tsx
+│   ├── text-field.tsx
+│   ├── bar-chart.tsx
 │   └── ...
-├── composites/         # UI blocks built from elements
-│   ├── filters-panel/
-│   ├── notification-center/
-│   └── ...
-└── layout/             # App shell & navigation
-    ├── app-shell/
-    ├── header/
-    ├── sidebar/
-    ├── footer/
+└── blocks/        # App shell, navigation & compound UI built from elements — flat, no subfolders
+    ├── app-shell.tsx
+    ├── header.tsx
+    ├── sidebar.tsx
+    ├── footer.tsx
+    ├── notification-center.tsx
     └── ...
 ```
 
 ### Layer Definitions
 
-1. **Primitives (`components/ui/`)** — installed via the shadcn/ui CLI only (never hand-copied from docs). Never edited for feature-specific logic, never used directly in pages/composites/layouts.
-2. **Elements (`components/elements/`)** — domain-specific wrappers over shadcn primitives, grouped by type (`buttons/`, `fields/`, `charts/`). Own internal styling, label positioning, validation error states, helper text.
-3. **Composites (`components/composites/`)** — compound components built from multiple elements (e.g. `notification-center/` combining buttons + popovers).
-4. **Layout (`components/layout/`)** — structural components only (`app-shell/`, `sidebar/`, `navigation/`), assembled from elements/composites.
+1. **Primitives (`components/ui/`)** — installed via the shadcn/ui CLI only (never hand-copied from docs). Never edited for feature-specific logic, never used directly in pages/blocks.
+2. **Elements (`components/elements/`)** — domain-specific wrappers over shadcn primitives (`button.tsx`, `text-field.tsx`, `bar-chart.tsx`, etc.). Own internal styling, label positioning, validation error states, helper text.
+3. **Blocks (`components/blocks/`)** — everything assembled from elements: the app shell, header, sidebar, footer, and any other compound UI built from multiple elements (e.g. a notification center combining buttons + popovers).
+
+### Flat Files — No Per-Component or Per-Type Subfolders
+
+- Every component, in any layer, is a single file directly inside its layer folder. Never create a subfolder for one component — `elements/avatar/avatar.tsx` is forbidden; it must be `elements/avatar.tsx`. This applies identically to `ui/`, `elements/`, and `blocks/`.
+- Don't group by type either — no `buttons/`, `fields/`, `charts/` subfolders inside `elements/`, no `header/`, `sidebar/` subfolders inside `blocks/`. `button.tsx`, `text-field.tsx`, and `bar-chart.tsx` all sit directly in `elements/`; `header.tsx` and `sidebar.tsx` sit directly in `blocks/`.
+- A subfolder is only justified once a component is genuinely made of multiple files that must ship together (e.g. a colocated hook or a large data file) — never because a name like "avatar" or "sidebar" sounds like a feature.
+
+### Don't Split Into Subcomponents Unless Actually Reused
+
+- Default to one file per component, not a component tree. `Sidebar` holds its logo, nav list, and footer inline in one file — do not pre-emptively extract `sidebar-logo.tsx`, `nav-links.tsx`, `sidebar-footer.tsx`, etc. unless those pieces are actually rendered from more than one place.
+- **Split on the second occurrence, never the first.** When building a component for the first time, write it as one file even if a piece of it looks reusable in principle. Extract a shared subcomponent only once you're implementing a second place that genuinely needs the same markup/logic, then reuse it in both. Splitting speculatively "just in case" is forbidden — over-fragmenting into files nothing ever imports twice is exactly what this rule prevents.
+- Judge reuse the way it actually plays out in a SaaS product, not hypothetically: a `NavItem` may genuinely deserve extraction if the same links render in both a sidebar and a command palette or mobile drawer — extract it once that second usage exists, not in anticipation of it. A `Sidebar`, `Header`, `Footer`, or `AppShell` itself is normally mounted exactly once in the whole app (from the root/section `layout.tsx`) — it does not get split into subcomponents just because it has multiple visual sections.
 
 ### Layering, Assembly & Styling Rules
 
-- **Directional imports:** hierarchy is `layout` → `composites` → `elements` → `ui`. A higher layer may import a lower one; a lower layer must never import a higher one.
-- **Check before creating:** before adding any new `ui`, `elements`, or `composites` component, check whether one already exists and reuse/extend it instead of duplicating.
+- **Directional imports:** hierarchy is `blocks` → `elements` → `ui`. A higher layer may import a lower one; a lower layer must never import a higher one.
+- **Check before creating:** before adding any new `ui`, `elements`, or `blocks` component, check whether one already exists and reuse/extend it instead of duplicating.
 - **Check the full shadcn registry, not just the handful already installed:** before hand-writing any markup/logic inside an `elements/` component (error text, label wiring, prefix/suffix icons, show/hide toggles, etc.), check whether shadcn already ships a purpose-built primitive for it — run `npx shadcn@latest view <name>` or browse https://ui.shadcn.com/docs/components. The registry has ~65 components, most not yet pulled into this project (e.g. `field`/`field-label`/`field-error` for form-field composition, `input-group` for prefixed/suffixed inputs, `input-otp`, `combobox`) — don't assume the primitives already in `components/ui/` are the only ones available. A missed match means reinventing accessibility/state wiring (ARIA attributes, invalid/disabled propagation, error-list de-duplication, etc.) that's already solved upstream.
 - **Never consume shadcn primitives raw:** each primitive (or small related group) must be wrapped in a dedicated `elements/` component owning its domain logic, labels, state, and error handling (e.g. `ui/field.tsx` (`Field`/`FieldLabel`/`FieldError`) + `ui/input-group.tsx` (`InputGroup`/`InputGroupInput`) → `elements/text-field.tsx`; the app uses `TextField`, never the raw parts).
-- **Text-style field elements are built on `InputGroup`:** any `elements/fields/` component wrapping a text-style input (`text-field.tsx` and friends) uses `InputGroup` + `InputGroupInput`, never the bare `ui/input.tsx` directly — even when no affix is needed yet. Expose optional `prefix`/`suffix` props (rendered via `InputGroupAddon`) so icons, currency symbols, unit labels, or show/hide-password toggles can be added later through props alone, with no restructuring of the component or its call sites.
+- **Text-style field elements are built on `InputGroup`:** any `elements/` component wrapping a text-style input (`text-field.tsx` and friends) uses `InputGroup` + `InputGroupInput`, never the bare `ui/input.tsx` directly — even when no affix is needed yet. Expose optional `prefix`/`suffix` props (rendered via `InputGroupAddon`) so icons, currency symbols, unit labels, or show/hide-password toggles can be added later through props alone, with no restructuring of the component or its call sites.
 - **Split components by mechanism, not by label:** if two variants share the same underlying interaction mechanism and differ only in prop values (type, placeholder, validation, copy), they are one component configured via props — not separate files. A single `TextField` covers email, password, and any other text-style input; don't create `PasswordField`, `EmailField`, etc. as separate components. Split into genuinely separate components only when the underlying mechanism differs (e.g. a text field vs. a select/dropdown vs. a drag-and-drop dropzone) — those don't share internals and forcing them into one component would just be a conditional maze.
 - **Name the discriminator, don't split on it:** any `elements/` component with more than one semantic variant of the same mechanism exposes a single explicit discriminator prop — `variant` by default; reuse a more specific name only where it already carries that meaning in the DOM (e.g. input `type` for email/password/text). Define the prop even when only one call site exists today. Before creating a new component for what looks like a new case, check whether an existing component's discriminator prop can just take a new value instead.
-- **Pages are orchestrators:** `page.tsx` assembles only `composites` and `elements` — never raw HTML controls or raw shadcn primitives. If a combination of elements is used on one page only, assemble it inline in a plain `div`; promote it to a `composites` component only once the exact combination is duplicated across multiple pages/features.
-- **Layout components stay in layout:** `Header`, `Sidebar`, `Footer`, page shells, etc. are consumed only within the layout layer — never reused as building blocks inside feature pages or composites.
-- **No abstract layout primitives:** don't introduce `VStack`/`HStack`-style wrappers, and don't use shadcn's `Card` as a page-layout shortcut. Build page/section layout with plain `<div>`/`<section>` styled via Tailwind utilities (`flex`, `grid`, `gap-*`, `space-*`), placing your own `elements` components inside.
+- **Pages are orchestrators:** `page.tsx` assembles only `blocks` and `elements` — never raw HTML controls or raw shadcn primitives. If a combination of elements is used on one page only, assemble it inline in a plain `div`; extract it into a `blocks` component only once the same combination is actually duplicated across a second page/feature (see Don't Split Into Subcomponents Unless Actually Reused above).
+- **Blocks stay in blocks:** `Header`, `Sidebar`, `Footer`, `AppShell`, and other structural/compound blocks are consumed only from the root/section `layout.tsx` — never reused as building blocks inside feature pages.
+- **No abstract layout primitives:** don't introduce `VStack`/`HStack`-style wrappers, and don't use shadcn's `Card` as a page-layout shortcut. Build page/section layout with plain `<div>`/`<section>` styled via Tailwind utilities (`flex`, `grid`, `gap-*`, `space-*`), placing your own `elements`/`blocks` components inside.
 
 ---
 
@@ -456,6 +467,7 @@ export type AuthInput = z.infer<typeof authSchema>;
   - Component props: `<Name>Props` (`UserCardProps`, `SidebarProps`)
   - Forms/inputs: `<Name>FormValues` or `<Action><Entity>Input` (`CreateProjectInput`, `UserFormValues`)
   - API payloads/responses: `<Action><Entity>Payload` / `<Action><Entity>Response` (`UpdateUserPayload`, `FetchProjectsResponse`)
+- **The extracted `<Name>Props` interface is for `components/` only.** It exists because components (`ui`/`elements`/`blocks`) tend to accumulate many, often reused, props. `app/**/page.tsx` and `app/**/layout.tsx` don't get this treatment — their prop shape is small and fixed (`children`, route `params`, `searchParams`), so type it inline instead of naming a one-off interface: `export default function DashboardLayout({ children }: { children: React.ReactNode })`, not a separate `DashboardLayoutProps` declared above it.
 
 ---
 

@@ -32,6 +32,19 @@ export async function registerUser(
   }
 }
 
+export async function logoutUser(): Promise<ActionResponse> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signOut();
+
+    return { error: error?.message ?? null };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
 export async function loginUser(
   values: LoginFormValues,
 ): Promise<ActionResponse> {

@@ -8,9 +8,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import { registerUser } from '@/actions/auth';
 import { registerSchema, type RegisterFormValues } from '@/schemas/auth';
-import { TextField } from '@/components/elements/fields/text-field';
-import { Button } from '@/components/elements/buttons/button';
-import { Alert } from '@/components/elements/feedback/alert';
+import { TextField } from '@/components/elements/text-field';
+import { Button } from '@/components/elements/button';
+import { Alert } from '@/components/elements/alert';
 
 export default function RegisterPage() {
   const router = useRouter();

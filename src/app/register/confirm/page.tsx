@@ -2,13 +2,11 @@ import Link from 'next/link';
 
 import { maskEmail } from '@/lib/email';
 
-interface RegisterConfirmPageProps {
-  searchParams: Promise<{ email?: string }>;
-}
-
 export default async function RegisterConfirmPage({
   searchParams,
-}: RegisterConfirmPageProps) {
+}: {
+  searchParams: Promise<{ email?: string }>;
+}) {
   const { email } = await searchParams;
   const maskedEmail = email ? maskEmail(email) : 'your email';
 
