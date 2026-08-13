@@ -1,5 +1,7 @@
 'use server';
 
+import type { User } from '@supabase/supabase-js';
+
 import { createClient } from '@/lib/supabase/server';
 import {
   loginSchema,
@@ -8,6 +10,27 @@ import {
   type RegisterFormValues,
 } from '@/schemas/auth';
 import type { ActionResponse } from '@/types/action-response';
+
+export async function getUser(): Promise<ActionResponse<User>> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return { data: null, error: error?.message ?? 'Unauthorized' };
+    }
+
+    return { data: user, error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
 
 export async function registerUser(
   values: RegisterFormValues,
