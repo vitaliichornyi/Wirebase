@@ -1,4 +1,6 @@
-export type FlowStatus = 'active' | 'inactive' | 'archived';
+export const FLOW_STATUSES = ['active', 'inactive', 'archived'] as const;
+
+export type FlowStatus = (typeof FLOW_STATUSES)[number];
 
 export interface Flow {
   id: string;

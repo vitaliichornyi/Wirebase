@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createFlow } from '@/actions/flows';
+import { createFlow, updateFlowStatus } from '@/actions/flows';
 import { activeClientHolder } from '@/test-utils/mock-supabase-server';
 import { createTestUser, deleteTestUser, type TestUser } from '@/test-utils/supabase';
 
@@ -44,5 +44,64 @@ describe('createFlow', () => {
 
     expect(result.error).toBeNull();
     expect(result.data?.flow.name).toBe('Untitled flow');
+  });
+});
+
+describe('updateFlowStatus', () => {
+  let owner: TestUser;
+  let otherUser: TestUser;
+  let flowId: string;
+
+  beforeAll(async () => {
+    owner = await createTestUser();
+    otherUser = await createTestUser();
+
+    activeClientHolder.client = owner.client;
+    const flowResult = await createFlow({ name: 'Status flow' });
+    flowId = flowResult.data!.flow.id;
+  });
+
+  afterAll(async () => {
+    await deleteTestUser(owner.id);
+    await deleteTestUser(otherUser.id);
+  });
+
+  it('pauses an Active Flow by setting it Inactive', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await updateFlowStatus({ flowId, status: 'inactive' });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.status).toBe('inactive');
+  });
+
+  it('reactivates an Inactive Flow back to Active', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await updateFlowStatus({ flowId, status: 'active' });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.status).toBe('active');
+  });
+
+  it('archives a Flow and can unarchive it again', async () => {
+    activeClientHolder.client = owner.client;
+
+    const archived = await updateFlowStatus({ flowId, status: 'archived' });
+    expect(archived.error).toBeNull();
+    expect(archived.data?.status).toBe('archived');
+
+    const unarchived = await updateFlowStatus({ flowId, status: 'active' });
+    expect(unarchived.error).toBeNull();
+    expect(unarchived.data?.status).toBe('active');
+  });
+
+  it('does not let another user change the Flow status', async () => {
+    activeClientHolder.client = otherUser.client;
+
+    const result = await updateFlowStatus({ flowId, status: 'archived' });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe('Flow not found');
   });
 });

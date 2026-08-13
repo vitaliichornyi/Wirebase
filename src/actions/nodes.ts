@@ -1,13 +1,20 @@
 'use server';
 
+import type { User } from '@supabase/supabase-js';
+import type { z } from 'zod';
+
 import { getUser } from '@/actions/auth';
 import { generateSlug } from '@/lib/slug';
 import { createClient } from '@/lib/supabase/server';
 import {
   addInputNodeSchema,
   addOutputNodeSchema,
+  deleteNodeSchema,
+  updateInputNodeStatusSchema,
   type AddInputNodeInput,
   type AddOutputNodeInput,
+  type DeleteNodeInput,
+  type UpdateInputNodeStatusInput,
 } from '@/schemas/nodes';
 import type { ActionResponse } from '@/types/action-response';
 import type { InputNode, NodeRow, OutputNode } from '@/types/nodes';
@@ -51,6 +58,33 @@ function mapOutputNodeRow(row: NodeRow): OutputNode {
   };
 }
 
+interface NodeActionContext<T> {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  user: User;
+  input: T;
+}
+
+// Shared validate -> auth sequence for this file's actions (CLAUDE.md: Data
+// Layer > Authentication & Authorization).
+async function validateAndAuthenticate<TSchema extends z.ZodType>(
+  schema: TSchema,
+  values: z.input<TSchema>,
+): Promise<{ context: NodeActionContext<z.infer<TSchema>> | null; error: string | null }> {
+  const parsed = schema.safeParse(values);
+  if (!parsed.success) {
+    return { context: null, error: parsed.error.issues[0]?.message || 'Validation error' };
+  }
+
+  const { data: user, error: userError } = await getUser();
+  if (userError || !user) {
+    return { context: null, error: userError || 'Unauthorized' };
+  }
+
+  const supabase = await createClient();
+
+  return { context: { supabase, user, input: parsed.data }, error: null };
+}
+
 async function assertOwnsFlow(
   supabase: Awaited<ReturnType<typeof createClient>>,
   flowId: string,
@@ -72,19 +106,14 @@ export async function addInputNode(
   values: AddInputNodeInput,
 ): Promise<ActionResponse<InputNode>> {
   try {
-    const parsed = addInputNodeSchema.safeParse(values);
-    if (!parsed.success) {
-      return { data: null, error: parsed.error.issues[0]?.message || 'Validation error' };
+    const { context, error } = await validateAndAuthenticate(addInputNodeSchema, values);
+    if (error || !context) {
+      return { data: null, error };
     }
 
-    const { data: user, error: userError } = await getUser();
-    if (userError || !user) {
-      return { data: null, error: userError || 'Unauthorized' };
-    }
+    const { supabase, user, input } = context;
 
-    const supabase = await createClient();
-
-    const ownershipError = await assertOwnsFlow(supabase, parsed.data.flowId, user.id);
+    const ownershipError = await assertOwnsFlow(supabase, input.flowId, user.id);
     if (ownershipError) {
       return { data: null, error: ownershipError };
     }
@@ -95,12 +124,12 @@ export async function addInputNode(
       const { data: nodeRow, error: nodeError } = await supabase
         .from('nodes')
         .insert({
-          flow_id: parsed.data.flowId,
+          flow_id: input.flowId,
           user_id: user.id,
           type: 'input',
-          name: parsed.data.name?.trim() || 'Untitled link',
-          position_x: parsed.data.positionX ?? 0,
-          position_y: parsed.data.positionY ?? 0,
+          name: input.name?.trim() || 'Untitled link',
+          position_x: input.positionX ?? 0,
+          position_y: input.positionY ?? 0,
           slug: generateSlug(),
           input_status: 'enabled',
         })
@@ -132,19 +161,14 @@ export async function addOutputNode(
   values: AddOutputNodeInput,
 ): Promise<ActionResponse<OutputNode>> {
   try {
-    const parsed = addOutputNodeSchema.safeParse(values);
-    if (!parsed.success) {
-      return { data: null, error: parsed.error.issues[0]?.message || 'Validation error' };
+    const { context, error } = await validateAndAuthenticate(addOutputNodeSchema, values);
+    if (error || !context) {
+      return { data: null, error };
     }
 
-    const { data: user, error: userError } = await getUser();
-    if (userError || !user) {
-      return { data: null, error: userError || 'Unauthorized' };
-    }
+    const { supabase, user, input } = context;
 
-    const supabase = await createClient();
-
-    const ownershipError = await assertOwnsFlow(supabase, parsed.data.flowId, user.id);
+    const ownershipError = await assertOwnsFlow(supabase, input.flowId, user.id);
     if (ownershipError) {
       return { data: null, error: ownershipError };
     }
@@ -152,13 +176,13 @@ export async function addOutputNode(
     const { data: nodeRow, error: nodeError } = await supabase
       .from('nodes')
       .insert({
-        flow_id: parsed.data.flowId,
+        flow_id: input.flowId,
         user_id: user.id,
         type: 'output',
-        name: parsed.data.name?.trim() || 'Untitled destination',
-        position_x: parsed.data.positionX ?? 0,
-        position_y: parsed.data.positionY ?? 0,
-        destination_url: parsed.data.destinationUrl,
+        name: input.name?.trim() || 'Untitled destination',
+        position_x: input.positionX ?? 0,
+        position_y: input.positionY ?? 0,
+        destination_url: input.destinationUrl,
       })
       .select()
       .single();
@@ -171,6 +195,94 @@ export async function addOutputNode(
   } catch (error) {
     return {
       data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
+// Independent of Flow status (ADR 0012's Q9 discussion) — a single Input
+// node can be Disabled inside an otherwise Active Flow.
+export async function updateInputNodeStatus(
+  values: UpdateInputNodeStatusInput,
+): Promise<ActionResponse<InputNode>> {
+  try {
+    const { context, error } = await validateAndAuthenticate(updateInputNodeStatusSchema, values);
+    if (error || !context) {
+      return { data: null, error };
+    }
+
+    const { supabase, user, input } = context;
+
+    const { data: nodeRow, error: nodeError } = await supabase
+      .from('nodes')
+      .update({ input_status: input.status })
+      .eq('id', input.nodeId)
+      .eq('user_id', user.id)
+      .eq('type', 'input')
+      .is('deleted_at', null)
+      .select()
+      .maybeSingle();
+
+    if (nodeError) {
+      return { data: null, error: nodeError.message };
+    }
+
+    if (!nodeRow) {
+      return { data: null, error: 'Input node not found' };
+    }
+
+    return { data: mapInputNodeRow(nodeRow), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
+// Soft-delete (ADR 0006, ADR 0011): the row and its Click history persist —
+// only marked deleted_at and hidden from the owner-facing UI, which treats
+// it as permanently gone. Removes only this node's own edges, never
+// cascading into a shared Output that other Input nodes still depend on.
+export async function deleteNode(values: DeleteNodeInput): Promise<ActionResponse> {
+  try {
+    const { context, error } = await validateAndAuthenticate(deleteNodeSchema, values);
+    if (error || !context) {
+      return { error };
+    }
+
+    const { supabase, user, input } = context;
+
+    const { data: nodeRow, error: nodeError } = await supabase
+      .from('nodes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', input.nodeId)
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .select('id')
+      .maybeSingle();
+
+    if (nodeError) {
+      return { error: nodeError.message };
+    }
+
+    if (!nodeRow) {
+      return { error: 'Node not found' };
+    }
+
+    const { error: edgesError } = await supabase
+      .from('edges')
+      .delete()
+      .eq('user_id', user.id)
+      .or(`from_node_id.eq.${input.nodeId},to_node_id.eq.${input.nodeId}`);
+
+    if (edgesError) {
+      return { error: edgesError.message };
+    }
+
+    return { error: null };
+  } catch (error) {
+    return {
       error: error instanceof Error ? error.message : 'Unknown server error',
     };
   }

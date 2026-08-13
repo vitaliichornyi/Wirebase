@@ -1,4 +1,6 @@
-export type InputNodeStatus = 'enabled' | 'disabled';
+export const INPUT_NODE_STATUSES = ['enabled', 'disabled'] as const;
+
+export type InputNodeStatus = (typeof INPUT_NODE_STATUSES)[number];
 
 export interface InputNode {
   id: string;
