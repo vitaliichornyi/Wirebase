@@ -11,10 +11,12 @@ import {
   addOutputNodeSchema,
   deleteNodeSchema,
   updateInputNodeStatusSchema,
+  updateInputNodeUtmSchema,
   type AddInputNodeInput,
   type AddOutputNodeInput,
   type DeleteNodeInput,
   type UpdateInputNodeStatusInput,
+  type UpdateInputNodeUtmInput,
 } from '@/schemas/nodes';
 import type { ActionResponse } from '@/types/action-response';
 import type { InputNode, NodeRow, OutputNode } from '@/types/nodes';
@@ -216,6 +218,53 @@ export async function updateInputNodeStatus(
     const { data: nodeRow, error: nodeError } = await supabase
       .from('nodes')
       .update({ input_status: input.status })
+      .eq('id', input.nodeId)
+      .eq('user_id', user.id)
+      .eq('type', 'input')
+      .is('deleted_at', null)
+      .select()
+      .maybeSingle();
+
+    if (nodeError) {
+      return { data: null, error: nodeError.message };
+    }
+
+    if (!nodeRow) {
+      return { data: null, error: 'Input node not found' };
+    }
+
+    return { data: mapInputNodeRow(nodeRow), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
+// UTM values are per-Input-node with no Flow-level inheritance (ADR 0014).
+// Forwarded to the destination on redirect (ADR 0013) and captured on each
+// Click at the time it's recorded.
+export async function updateInputNodeUtm(
+  values: UpdateInputNodeUtmInput,
+): Promise<ActionResponse<InputNode>> {
+  try {
+    const { context, error } = await validateAndAuthenticate(updateInputNodeUtmSchema, values);
+    if (error || !context) {
+      return { data: null, error };
+    }
+
+    const { supabase, user, input } = context;
+
+    const { data: nodeRow, error: nodeError } = await supabase
+      .from('nodes')
+      .update({
+        utm_source: input.utmSource || null,
+        utm_medium: input.utmMedium || null,
+        utm_campaign: input.utmCampaign || null,
+        utm_term: input.utmTerm || null,
+        utm_content: input.utmContent || null,
+      })
       .eq('id', input.nodeId)
       .eq('user_id', user.id)
       .eq('type', 'input')

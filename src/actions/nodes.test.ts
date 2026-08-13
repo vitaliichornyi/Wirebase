@@ -2,7 +2,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { connectEdge } from '@/actions/edges';
 import { createFlow } from '@/actions/flows';
-import { addInputNode, addOutputNode, deleteNode, updateInputNodeStatus } from '@/actions/nodes';
+import {
+  addInputNode,
+  addOutputNode,
+  deleteNode,
+  updateInputNodeStatus,
+  updateInputNodeUtm,
+} from '@/actions/nodes';
+import { updateInputNodeUtmSchema } from '@/schemas/nodes';
 import { activeClientHolder } from '@/test-utils/mock-supabase-server';
 import { createTestUser, deleteTestUser, type TestUser } from '@/test-utils/supabase';
 
@@ -116,6 +123,96 @@ describe('updateInputNodeStatus', () => {
 
     expect(result.data).toBeNull();
     expect(result.error).toBe('Input node not found');
+  });
+});
+
+describe('updateInputNodeUtm', () => {
+  let owner: TestUser;
+  let otherUser: TestUser;
+  let inputNodeId: string;
+
+  beforeAll(async () => {
+    owner = await createTestUser();
+    otherUser = await createTestUser();
+
+    activeClientHolder.client = owner.client;
+    const flowResult = await createFlow({ name: 'UTM flow' });
+    inputNodeId = flowResult.data!.inputNode.id;
+  });
+
+  afterAll(async () => {
+    await deleteTestUser(owner.id);
+    await deleteTestUser(otherUser.id);
+  });
+
+  it('stores the five optional UTM fields on an Input node', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await updateInputNodeUtm({
+      nodeId: inputNodeId,
+      utmSource: 'newsletter',
+      utmMedium: 'email',
+      utmCampaign: 'launch',
+      utmTerm: 'wirebase',
+      utmContent: 'header-link',
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.utmSource).toBe('newsletter');
+    expect(result.data?.utmMedium).toBe('email');
+    expect(result.data?.utmCampaign).toBe('launch');
+    expect(result.data?.utmTerm).toBe('wirebase');
+    expect(result.data?.utmContent).toBe('header-link');
+  });
+
+  it('clears a UTM field back to null when given an empty string', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await updateInputNodeUtm({
+      nodeId: inputNodeId,
+      utmSource: '',
+      utmMedium: 'email',
+      utmCampaign: 'launch',
+      utmTerm: 'wirebase',
+      utmContent: 'header-link',
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.utmSource).toBeNull();
+    expect(result.data?.utmMedium).toBe('email');
+  });
+
+  it('does not let another user configure UTM values on a node they do not own', async () => {
+    activeClientHolder.client = otherUser.client;
+
+    const result = await updateInputNodeUtm({
+      nodeId: inputNodeId,
+      utmSource: 'not-mine',
+      utmMedium: null,
+      utmCampaign: null,
+      utmTerm: null,
+      utmContent: null,
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe('Input node not found');
+
+    const { data: nodeRow } = await owner.client
+      .from('nodes')
+      .select('*')
+      .eq('id', inputNodeId)
+      .single();
+
+    expect(nodeRow?.utm_medium).toBe('email');
+  });
+
+  it('requires every UTM field to be present, so a call cannot silently wipe the fields it omits', async () => {
+    const parseResult = updateInputNodeUtmSchema.safeParse({
+      nodeId: inputNodeId,
+      utmSource: 'newsletter',
+    });
+
+    expect(parseResult.success).toBe(false);
   });
 });
 
