@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     env: loadEnv('test', process.cwd(), ''),
+    setupFiles: ['./src/test-utils/mock-supabase-server.ts'],
     testTimeout: 20000,
     hookTimeout: 20000,
   },

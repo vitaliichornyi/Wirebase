@@ -5,17 +5,8 @@ import { getUser } from '@/actions/auth';
 import { createClient } from '@/lib/supabase/server';
 import { createFlowSchema, type CreateFlowInput } from '@/schemas/flows';
 import type { ActionResponse } from '@/types/action-response';
-import type { Flow, FlowStatus } from '@/types/flows';
+import type { Flow, FlowRow } from '@/types/flows';
 import type { InputNode } from '@/types/nodes';
-
-interface FlowRow {
-  id: string;
-  user_id: string;
-  name: string;
-  status: FlowStatus;
-  created_at: string;
-  updated_at: string;
-}
 
 function mapFlowRow(row: FlowRow): Flow {
   return {

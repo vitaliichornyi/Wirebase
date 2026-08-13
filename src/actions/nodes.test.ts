@@ -1,16 +1,9 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createFlow } from '@/actions/flows';
+import { addInputNode, addOutputNode } from '@/actions/nodes';
+import { activeClientHolder } from '@/test-utils/mock-supabase-server';
 import { createTestUser, deleteTestUser, type TestUser } from '@/test-utils/supabase';
-
-let activeClient: SupabaseClient;
-
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: async () => activeClient,
-}));
-
-const { createFlow } = await import('@/actions/flows');
-const { addInputNode, addOutputNode } = await import('@/actions/nodes');
 
 describe('node actions', () => {
   let owner: TestUser;
@@ -21,7 +14,7 @@ describe('node actions', () => {
     owner = await createTestUser();
     otherUser = await createTestUser();
 
-    activeClient = owner.client;
+    activeClientHolder.client = owner.client;
     const flowResult = await createFlow({ name: 'Owner flow' });
     flowId = flowResult.data!.flow.id;
   });
@@ -32,7 +25,7 @@ describe('node actions', () => {
   });
 
   it('adds an Output node with a destination URL', async () => {
-    activeClient = owner.client;
+    activeClientHolder.client = owner.client;
 
     const result = await addOutputNode({
       flowId,
@@ -47,7 +40,7 @@ describe('node actions', () => {
   });
 
   it('adds a second Input node to an existing Flow', async () => {
-    activeClient = owner.client;
+    activeClientHolder.client = owner.client;
 
     const result = await addInputNode({ flowId, name: 'Second link' });
 
@@ -55,7 +48,7 @@ describe('node actions', () => {
     expect(result.data?.type).toBe('input');
     expect(result.data?.flowId).toBe(flowId);
 
-    const { data: inputNodes } = await activeClient
+    const { data: inputNodes } = await activeClientHolder.client
       .from('nodes')
       .select('*')
       .eq('flow_id', flowId)
@@ -65,7 +58,7 @@ describe('node actions', () => {
   });
 
   it('scopes node mutations to the authenticated owner', async () => {
-    activeClient = otherUser.client;
+    activeClientHolder.client = otherUser.client;
 
     const result = await addOutputNode({
       flowId,

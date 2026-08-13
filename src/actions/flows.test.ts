@@ -1,22 +1,15 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createFlow } from '@/actions/flows';
+import { activeClientHolder } from '@/test-utils/mock-supabase-server';
 import { createTestUser, deleteTestUser, type TestUser } from '@/test-utils/supabase';
-
-let activeClient: SupabaseClient;
-
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: async () => activeClient,
-}));
-
-const { createFlow } = await import('@/actions/flows');
 
 describe('createFlow', () => {
   let user: TestUser;
 
   beforeAll(async () => {
     user = await createTestUser();
-    activeClient = user.client;
+    activeClientHolder.client = user.client;
   });
 
   afterAll(async () => {
@@ -37,7 +30,7 @@ describe('createFlow', () => {
     expect(inputNode.status).toBe('enabled');
     expect(inputNode.slug).toMatch(/^[a-zA-Z0-9]{8}$/);
 
-    const { data: nodes } = await activeClient
+    const { data: nodes } = await activeClientHolder.client!
       .from('nodes')
       .select('*')
       .eq('flow_id', result.data!.flow.id);

@@ -10,30 +10,10 @@ import {
   type AddOutputNodeInput,
 } from '@/schemas/nodes';
 import type { ActionResponse } from '@/types/action-response';
-import type { InputNode, OutputNode } from '@/types/nodes';
+import type { InputNode, NodeRow, OutputNode } from '@/types/nodes';
 
 const MAX_SLUG_ATTEMPTS = 5;
 const UNIQUE_VIOLATION = '23505';
-
-interface NodeRow {
-  id: string;
-  flow_id: string;
-  user_id: string;
-  type: 'input' | 'output';
-  name: string;
-  position_x: number;
-  position_y: number;
-  slug: string | null;
-  input_status: 'enabled' | 'disabled' | null;
-  utm_source: string | null;
-  utm_medium: string | null;
-  utm_campaign: string | null;
-  utm_term: string | null;
-  utm_content: string | null;
-  destination_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 function mapInputNodeRow(row: NodeRow): InputNode {
   return {

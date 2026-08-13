@@ -33,3 +33,23 @@ export interface OutputNode {
 }
 
 export type FlowNode = InputNode | OutputNode;
+
+export interface NodeRow {
+  id: string;
+  flow_id: string;
+  user_id: string;
+  type: 'input' | 'output';
+  name: string;
+  position_x: number;
+  position_y: number;
+  slug: string | null;
+  input_status: InputNodeStatus | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_term: string | null;
+  utm_content: string | null;
+  destination_url: string | null;
+  created_at: string;
+  updated_at: string;
+}

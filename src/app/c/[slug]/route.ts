@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { after, NextResponse, type NextRequest } from 'next/server';
 
 import { createPublicClient } from '@/lib/supabase/public';
 import { buildRedirectUrl } from '@/lib/utm';
@@ -65,17 +65,27 @@ export async function GET(
 
   const response = NextResponse.redirect(redirectUrl, 302);
 
-  // Fire-and-forget per ADR 0004 — the redirect must never wait on this
-  // write completing. `.rpc()` returns a lazy thenable that only sends its
-  // request once `.then()`/`await` runs, so `void` alone would never fire it.
-  supabase
-    .rpc('record_click', {
+  const recordClick = async () => {
+    // `.rpc()` returns a lazy thenable that only sends its request once
+    // `.then()`/`await` runs, so `void` alone would never fire it.
+    await supabase.rpc('record_click', {
       p_input_node_id: resolution.input_node_id,
       p_country: request.headers.get('x-vercel-ip-country'),
       p_user_agent: request.headers.get('user-agent'),
       p_referrer: request.headers.get('referer'),
-    })
-    .then(() => {});
+    });
+  };
+
+  // Fire-and-forget per ADR 0004 — the redirect must never wait on this
+  // write completing. `after()` keeps the write running once the response
+  // has been sent, which a bare unawaited promise can't guarantee on a
+  // serverless runtime. It only works inside a real Next.js request, so
+  // direct handler invocation (e.g. tests) falls back to firing inline.
+  try {
+    after(recordClick);
+  } catch {
+    recordClick();
+  }
 
   return response;
 }

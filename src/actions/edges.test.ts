@@ -1,18 +1,11 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createFlow } from '@/actions/flows';
+import { addInputNode, addOutputNode } from '@/actions/nodes';
+import { connectEdge } from '@/actions/edges';
+import { activeClientHolder } from '@/test-utils/mock-supabase-server';
 import { createTestUser, deleteTestUser, type TestUser } from '@/test-utils/supabase';
 import type { InputNode, OutputNode } from '@/types/nodes';
-
-let activeClient: SupabaseClient;
-
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: async () => activeClient,
-}));
-
-const { createFlow } = await import('@/actions/flows');
-const { addInputNode, addOutputNode } = await import('@/actions/nodes');
-const { connectEdge } = await import('@/actions/edges');
 
 describe('connectEdge', () => {
   let user: TestUser;
@@ -23,7 +16,7 @@ describe('connectEdge', () => {
 
   beforeAll(async () => {
     user = await createTestUser();
-    activeClient = user.client;
+    activeClientHolder.client = user.client;
 
     const flowResult = await createFlow({ name: 'Edges flow' });
     flowId = flowResult.data!.flow.id;
@@ -55,6 +48,17 @@ describe('connectEdge', () => {
     expect(result.data?.toSlot).toBe('in');
   });
 
+  it('rejects reconnecting an Input node that is already wired', async () => {
+    const result = await connectEdge({
+      flowId,
+      fromNodeId: inputA.id,
+      toNodeId: output.id,
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe('This node is already connected to a destination');
+  });
+
   it('allows multiple Input nodes to connect to the same Output node', async () => {
     const result = await connectEdge({
       flowId,
@@ -64,7 +68,7 @@ describe('connectEdge', () => {
 
     expect(result.error).toBeNull();
 
-    const { data: edges } = await activeClient
+    const { data: edges } = await activeClientHolder.client!
       .from('edges')
       .select('*')
       .eq('to_node_id', output.id);

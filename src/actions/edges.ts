@@ -4,18 +4,9 @@ import { getUser } from '@/actions/auth';
 import { createClient } from '@/lib/supabase/server';
 import { connectEdgeSchema, type ConnectEdgeInput } from '@/schemas/edges';
 import type { ActionResponse } from '@/types/action-response';
-import type { Edge } from '@/types/edges';
+import type { Edge, EdgeRow } from '@/types/edges';
 
-interface EdgeRow {
-  id: string;
-  flow_id: string;
-  user_id: string;
-  from_node_id: string;
-  from_slot: string;
-  to_node_id: string;
-  to_slot: string;
-  created_at: string;
-}
+const UNIQUE_VIOLATION = '23505';
 
 function mapEdgeRow(row: EdgeRow): Edge {
   return {
@@ -31,8 +22,7 @@ function mapEdgeRow(row: EdgeRow): Edge {
 }
 
 // Every node has exactly one slot per direction today ("out"/"in") — see
-// ADR 0002. Connecting a from-node that's already wired replaces its edge,
-// since an "out" slot can only ever point at one destination.
+// ADR 0002, so an "out" slot can only ever point at one destination.
 export async function connectEdge(
   values: ConnectEdgeInput,
 ): Promise<ActionResponse<Edge>> {
@@ -72,16 +62,6 @@ export async function connectEdge(
       return { data: null, error: 'An edge must connect an Input node to an Output node' };
     }
 
-    const { error: deleteError } = await supabase
-      .from('edges')
-      .delete()
-      .eq('from_node_id', parsed.data.fromNodeId)
-      .eq('from_slot', 'out');
-
-    if (deleteError) {
-      return { data: null, error: deleteError.message };
-    }
-
     const { data: edgeRow, error: edgeError } = await supabase
       .from('edges')
       .insert({
@@ -94,6 +74,10 @@ export async function connectEdge(
       })
       .select()
       .single();
+
+    if (edgeError?.code === UNIQUE_VIOLATION) {
+      return { data: null, error: 'This node is already connected to a destination' };
+    }
 
     if (edgeError || !edgeRow) {
       return { data: null, error: edgeError?.message ?? 'Unknown server error' };
