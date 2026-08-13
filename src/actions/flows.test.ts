@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createFlow, updateFlowStatus } from '@/actions/flows';
+import { createFlow, listFlows, updateFlowStatus } from '@/actions/flows';
+import { addInputNode, addOutputNode, deleteNode } from '@/actions/nodes';
 import { activeClientHolder } from '@/test-utils/mock-supabase-server';
 import { createTestUser, deleteTestUser, type TestUser } from '@/test-utils/supabase';
 
@@ -103,5 +104,65 @@ describe('updateFlowStatus', () => {
 
     expect(result.data).toBeNull();
     expect(result.error).toBe('Flow not found');
+  });
+});
+
+describe('listFlows', () => {
+  let owner: TestUser;
+  let otherUser: TestUser;
+
+  beforeAll(async () => {
+    owner = await createTestUser();
+    otherUser = await createTestUser();
+  });
+
+  afterAll(async () => {
+    await deleteTestUser(owner.id);
+    await deleteTestUser(otherUser.id);
+  });
+
+  it('lists only the authenticated user\'s Flows, most-recently-edited first', async () => {
+    activeClientHolder.client = owner.client;
+    const first = (await createFlow({ name: 'First flow' })).data!.flow;
+    const second = (await createFlow({ name: 'Second flow' })).data!.flow;
+
+    activeClientHolder.client = otherUser.client;
+    await createFlow({ name: 'Someone else\'s flow' });
+
+    activeClientHolder.client = owner.client;
+    await updateFlowStatus({ flowId: first.id, status: 'inactive' });
+
+    const result = await listFlows();
+
+    expect(result.error).toBeNull();
+    const names = result.data!.map((flow) => flow.name);
+    expect(names).toContain('First flow');
+    expect(names).toContain('Second flow');
+    expect(names).not.toContain('Someone else\'s flow');
+
+    const firstIndex = result.data!.findIndex((flow) => flow.id === first.id);
+    const secondIndex = result.data!.findIndex((flow) => flow.id === second.id);
+    expect(firstIndex).toBeLessThan(secondIndex);
+  });
+
+  it('counts only non-deleted Input nodes as the link count, excluding Output nodes', async () => {
+    activeClientHolder.client = owner.client;
+    const flow = (await createFlow({ name: 'Counted flow' })).data!.flow;
+
+    const secondInput = (
+      await addInputNode({ flowId: flow.id, name: 'Second link' })
+    ).data!;
+    await addInputNode({ flowId: flow.id, name: 'Third link' });
+    await addOutputNode({
+      flowId: flow.id,
+      name: 'Destination',
+      destinationUrl: 'https://example.com',
+    });
+    await deleteNode({ nodeId: secondInput.id });
+
+    const result = await listFlows();
+
+    const listedFlow = result.data!.find((item) => item.id === flow.id);
+    expect(listedFlow?.linkCount).toBe(2);
   });
 });

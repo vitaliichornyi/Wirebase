@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 
 const NAV_ITEMS: { label: string; href: string; icon: LucideIcon }[] = [
   { label: 'Dashboards', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Wires', href: '/dashboard/wires', icon: Cable },
+  { label: 'Flows', href: '/dashboard/flows', icon: Cable },
 ];
 
 export function Sidebar() {

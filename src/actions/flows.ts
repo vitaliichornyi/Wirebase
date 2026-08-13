@@ -148,3 +148,58 @@ export async function updateFlowStatus(
     };
   }
 }
+
+export interface FlowListItem extends Flow {
+  linkCount: number;
+}
+
+// One row per Flow, not per link (ADR 0007). Sorted most-recently-edited
+// first, matching the flows list page's default sort.
+export async function listFlows(): Promise<ActionResponse<FlowListItem[]>> {
+  try {
+    const { data: user, error: userError } = await getUser();
+    if (userError || !user) {
+      return { data: null, error: userError || 'Unauthorized' };
+    }
+
+    const supabase = await createClient();
+
+    const { data: flowRows, error: flowsError } = await supabase
+      .from('flows')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    if (flowsError) {
+      return { data: null, error: flowsError.message };
+    }
+
+    const { data: inputNodeRows, error: nodesError } = await supabase
+      .from('nodes')
+      .select('flow_id')
+      .eq('user_id', user.id)
+      .eq('type', 'input')
+      .is('deleted_at', null);
+
+    if (nodesError) {
+      return { data: null, error: nodesError.message };
+    }
+
+    const linkCountsByFlowId = new Map<string, number>();
+    for (const { flow_id: flowId } of inputNodeRows ?? []) {
+      linkCountsByFlowId.set(flowId, (linkCountsByFlowId.get(flowId) ?? 0) + 1);
+    }
+
+    const flows = (flowRows ?? []).map((row) => ({
+      ...mapFlowRow(row),
+      linkCount: linkCountsByFlowId.get(row.id) ?? 0,
+    }));
+
+    return { data: flows, error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
