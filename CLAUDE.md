@@ -205,26 +205,7 @@ app/api/
 - Follow standard REST semantics wherever practical.
 - Resource names are project-specific — replace with the actual entity names.
 
-### Endpoint Security & Route Protection
-
-- **Public endpoints** (auth handlers, public webhooks, etc.): must strictly validate incoming payloads with Zod.
-- **Protected endpoints:** must verify user identity server-side before executing business logic, and strictly validate payloads with Zod.
-- Every protected route handler verifies the user via the Supabase server client using `getUser()` — **never** `getSession()`. If no user is returned, abort immediately with `401 Unauthorized`:
-
-```ts
-const supabase = await createClient();
-const {
-  data: { user },
-  error,
-} = await supabase.auth.getUser();
-if (error || !user) {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
-```
-
-- **Authorization vs. authentication:** authentication verifies _who_ the user is; authorization verifies _what_ they can access. Always confirm the authenticated `user.id` owns the requested resource (or holds the required role) before any mutation (`POST`/`PATCH`/`DELETE`) or read (`GET`).
-
-_(The full API-route pipeline — Zod validation, delegation to the service layer, status codes, response shape — is standardized in Data Layer → API Routes + TanStack Query Pattern.)_
+_(Endpoint security — Zod validation, auth checks, authorization — applies to any Route Handler anywhere in `src/app/`, not only REST resources under `src/app/api/`, so it's documented pattern/location-agnostically in Data Layer → Shared Standards → Endpoint Security & Route Protection. The full API-route pipeline specifically — Zod validation, delegation to the service layer, status codes, response shape — is standardized in Data Layer → API Routes + TanStack Query Pattern.)_
 
 ---
 
@@ -371,7 +352,24 @@ if (userError || !user)
 - Always chain `.eq('user_id', user.id)` on queries to enforce tenant/ownership isolation.
 - **Extract repeated validate → auth → ownership boilerplate — split on the second occurrence, never the first** (same rule as Component Architecture → Don't Split Into Subcomponents Unless Actually Reused). Write the first action's/service's `schema.safeParse` → `getUser()` → ownership-check sequence inline. Once a second action/service in the same file needs the identical sequence, extract a shared private helper (not exported, not itself a Server Action/route handler) that returns the authenticated context instead of copy-pasting the block again. Shape the helper's return like the existing `{ data, error }` convention — e.g. `{ context: { supabase, user, input }, error }` — so callers narrow it with the same `if (error || !context)` idiom already used for `getUser()`, no manual `!` assertions needed.
 
-_(For raw route-handler-level auth checks against `supabase.auth.getUser()` directly, see RESTful API Architecture → Endpoint Security & Route Protection.)_
+**Endpoint Security & Route Protection (any Route Handler, anywhere in `src/app/`):**
+
+- **Public endpoints** (auth handlers, public webhooks, a redirect route, etc.): must strictly validate incoming payloads with Zod.
+- **Protected endpoints:** must verify user identity server-side before executing business logic, and strictly validate payloads with Zod.
+- Every protected route handler verifies the user via the Supabase server client using `getUser()` — **never** `getSession()`. If no user is returned, abort immediately with `401 Unauthorized`:
+
+```ts
+const supabase = await createClient();
+const {
+  data: { user },
+  error,
+} = await supabase.auth.getUser();
+if (error || !user) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+```
+
+- **Authorization vs. authentication:** authentication verifies _who_ the user is; authorization verifies _what_ they can access. Always confirm the authenticated `user.id` owns the requested resource (or holds the required role) before any mutation (`POST`/`PATCH`/`DELETE`) or read (`GET`).
 
 **Public & unauthenticated data access:**
 
