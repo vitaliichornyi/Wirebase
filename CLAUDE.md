@@ -1,6 +1,6 @@
 # CLAUDE.md — Project Engineering Standards
 
-**Contents:** Maintenance Protocol · Ticket Interpretation · Tech Stack · Directory Structure · Routing & Access Control · RESTful API Architecture · Component Architecture · Data Layer · Types & Zod Schemas · Code Style · Forms · Security & Environment Variables · UI Copy Guidelines
+**Contents:** Maintenance Protocol · Ticket Interpretation · Tech Stack · Directory Structure · Routing & Access Control · Server & Client Components · RESTful API Architecture · Component Architecture · Data Layer · Error Handling & Display · Types & Zod Schemas · Code Style · Forms · Security & Environment Variables · UI Copy Guidelines
 
 ---
 
@@ -121,10 +121,11 @@ src/
 ### Providers & Root Layout
 
 - `src/providers/` is for providers that own actual setup/config code (e.g. TanStack Query Provider instantiating a `QueryClient`, a Theme Provider managing theme state) — each one lives in its own file, starting with `'use client'`.
-- **Don't wrap a provider that needs no setup.** If a third-party client primitive (e.g. a UI library's `TooltipProvider`) is used with zero extra config — no wrapping element, no options, just the import — render it directly in `src/app/layout.tsx` instead of creating a pass-through file in `src/providers/` that adds no code of its own. A Server Component can render a Client Component directly, so no wrapper is needed to cross that boundary.
-- Never stack multiple providers in a single file.
+- **Always wrap a provider in its own file, even a zero-config one.** A third-party client primitive (e.g. a UI library's `TooltipProvider`) used with no extra options still gets its own file in `src/providers/` rather than being imported raw into `src/app/layout.tsx` — this keeps the pattern consistent everywhere, even when today's wrapper is a thin pass-through with no config of its own.
+- **One provider per file, always.** Never stack multiple providers in a single file — a zero-config provider is not an exception; it still gets its own dedicated file, not folded into another provider's.
 - Global providers are wired up **only** in the root layout (`src/app/layout.tsx`) — never in nested/section/feature layouts.
 - `src/app/layout.tsx` must remain a Server Component; never convert it to a Client Component to render providers.
+- **Every layout (root and nested/section) is a Server Component.** No `layout.tsx` at any level ever carries `'use client'`. Layouts exist to wrap pages and route groups with shared structure — any interactivity belongs in the pages or components they render, not in the layout itself.
 
 ### File & Code Naming Conventions
 
@@ -164,6 +165,22 @@ Access control is handled strictly in `src/proxy.ts` (Next.js Proxy — `middlew
   - Catch-all/redirect shortcodes: a dedicated short-prefix directory, e.g. `src/app/c/[slug]/page.tsx` for `/c/abc123`.
   - Domain entities: the plural entity name, e.g. `src/app/movies/[id]/page.tsx`, `src/app/users/[id]/page.tsx`.
 - Never mix generic root-level routing with dynamic pattern matching — shortlinks, deep links, or user handles must live in their own scoped namespace.
+
+---
+
+## Server & Client Components
+
+### Pages
+
+- Pages are Server Components by default. Only add `'use client'` to a page when one of the justifications below actually applies — default to server otherwise.
+- **Keep a page server when:** it needs `generateMetadata` for SEO or social-preview cards; it reads data directly from the DB, an ORM, or an internal API; it relies on server-only context (`cookies()`, `headers()`); or its content is mostly static/read-only.
+- **Make a page client only when:** it's fundamentally driven by browser-only APIs (`window`, `localStorage`, WebSockets); it needs interactivity spanning the entire page (drag-and-drop, a multi-step wizard, a rich text editor); or the interactive logic genuinely can't be isolated into separate Client Components rendered from a server page.
+- **Best practice:** prefer a Server Component page that renders one or more Client Components for the interactive parts, rather than marking the whole page `'use client'`. This is better for performance, SEO, and maintainability — reach for a fully client page only when actually necessary.
+
+### Components
+
+- **Push `'use client'` down to the smallest subtree that actually needs it.** If only one piece of a component needs a client-only hook (`usePathname()`, `useState`), an event handler, or a browser API, extract just that piece into its own Client Component rather than marking the whole parent `'use client'`. Example: `layout/sidebar.tsx` renders a list of nav links; only the active-link highlight needs `usePathname()` — extract a `NavItem` Client Component for that, instead of making all of `Sidebar` client. At the moment of that split, both files move into `layout/sidebar/` (`layout/sidebar/sidebar.tsx` + `layout/sidebar/nav-item.tsx`) — see Component Architecture → Flat Files.
+- This doesn't automatically make the parent a Server Component — if the parent has its own independent reason to be client (its own state, its own handlers), it stays client regardless of what's extracted from it. The extraction is still worth doing on its own merits (see Component Architecture → Don't Split Into Subcomponents Unless Actually Reused for the render-isolation reason).
 
 ---
 
@@ -215,57 +232,72 @@ All basic UI elements (inputs, buttons, dialogs, dropdowns, forms, badges, etc.)
 
 Only primitives (buttons, fields, and similar controls) are used as building blocks — layout/container primitives like `VStack`/`HStack` or using `Card` as a layout shortcut are deliberately excluded because they rigidly constrain design. Layout is always plain `<div>`/`<section>` + Tailwind.
 
-### Directory Structure (3 Layers)
+### Directory Structure (4 Layers)
 
 ```text
 components/
 ├── ui/            # Raw shadcn/ui primitives (unmodified)
-├── elements/      # Basic UI controls built on shadcn primitives — flat, no subfolders
+├── common/        # Basic UI controls built on shadcn primitives — flat by default
 │   ├── avatar.tsx
 │   ├── button.tsx
 │   ├── icon-button.tsx
 │   ├── text-field.tsx
 │   ├── bar-chart.tsx
 │   └── ...
-└── blocks/        # App shell, navigation & compound UI built from elements — flat, no subfolders
-    ├── app-shell.tsx
-    ├── header.tsx
-    ├── sidebar.tsx
-    ├── footer.tsx
-    ├── notification-center.tsx
-    └── ...
+├── layout/        # App chrome mounted only from layout.tsx — flat by default
+│   ├── app-shell.tsx
+│   ├── header.tsx
+│   ├── sidebar.tsx
+│   ├── footer.tsx
+│   ├── notification-center.tsx
+│   └── ...
+└── features/      # Compound components specific to one feature, grouped by feature
+    ├── nodes/
+    │   ├── node-properties-panel.tsx
+    │   └── ...
+    └── dashboard/
+        ├── filter-bar.tsx
+        └── ...
 ```
 
 ### Layer Definitions
 
-1. **Primitives (`components/ui/`)** — installed via the shadcn/ui CLI only (never hand-copied from docs). Never edited for feature-specific logic, never used directly in pages/blocks.
-2. **Elements (`components/elements/`)** — domain-specific wrappers over shadcn primitives (`button.tsx`, `text-field.tsx`, `bar-chart.tsx`, etc.). Own internal styling, label positioning, validation error states, helper text.
-3. **Blocks (`components/blocks/`)** — everything assembled from elements: the app shell, header, sidebar, footer, and any other compound UI built from multiple elements (e.g. a notification center combining buttons + popovers).
+1. **Primitives (`components/ui/`)** — installed via the shadcn/ui CLI only (never hand-copied from docs). Never edited for feature-specific logic, never used directly in pages, `layout/`, or `features/` components.
+2. **Common (`components/common/`)** — domain-agnostic wrappers over shadcn primitives (`button.tsx`, `text-field.tsx`, `bar-chart.tsx`, etc.). Own internal styling, label positioning, validation error states, helper text. Usable from anywhere in the app — pages, `layout/`, and `features/` alike.
+3. **Layout (`components/layout/`)** — app chrome: the app shell, header, sidebar, footer, and any other structural/compound UI mounted exclusively from `layout.tsx` (e.g. a notification center combining buttons + popovers, if it lives in the header). Never consumed directly from a page — see Layering, Assembly & Styling Rules → "Layout stays in layout."
+4. **Features (`components/features/`)** — compound components tied to one specific feature/domain (e.g. node creation/editing, a dashboard's filter bar). Grouped in one subfolder per feature (`features/nodes/`, `features/dashboard/`) — not generic enough for `common/`, not app-chrome for `layout/`. Consumed from that feature's own pages.
 
-### Flat Files — No Per-Component or Per-Type Subfolders
+### Flat Files — A Folder Appears Only Once a Component Has Genuinely Split
 
-- Every component, in any layer, is a single file directly inside its layer folder. Never create a subfolder for one component — `elements/avatar/avatar.tsx` is forbidden; it must be `elements/avatar.tsx`. This applies identically to `ui/`, `elements/`, and `blocks/`.
-- Don't group by type either — no `buttons/`, `fields/`, `charts/` subfolders inside `elements/`, no `header/`, `sidebar/` subfolders inside `blocks/`. `button.tsx`, `text-field.tsx`, and `bar-chart.tsx` all sit directly in `elements/`; `header.tsx` and `sidebar.tsx` sit directly in `blocks/`.
-- A subfolder is only justified once a component is genuinely made of multiple files that must ship together (e.g. a colocated hook or a large data file) — never because a name like "avatar" or "sidebar" sounds like a feature.
+- **Default: one file per component, directly inside its layer folder** (or its feature subfolder, for `features/`). `sidebar.tsx` sits directly in `layout/`; `filter-bar.tsx` sits directly in `features/dashboard/`. This applies identically to `common/`, `layout/`, and each feature subfolder inside `features/` — `ui/` is never split this way, it's managed entirely by the shadcn CLI.
+- **Never group by type.** No `buttons/`, `fields/`, `charts/` subfolders inside `common/` — a single `Alert` component doesn't need an `alerts/` folder just because "alert" sounds like a category to some. `button.tsx`, `text-field.tsx`, and `bar-chart.tsx` all sit flat in `common/`.
+- **A component gets its own folder at the exact moment it splits into 2+ files that ship together — never before, never speculatively.** The trigger is a real split, for any of the reasons already documented elsewhere in this file: reuse on the second occurrence, render-cost isolation, or the server/client boundary (see Component Architecture → Don't Split Into Subcomponents Unless Actually Reused, and Server & Client Components → Components).
+  - Concretely: `layout/sidebar.tsx` stays a single flat file until you extract `NavItem` out of it (e.g. for the client-boundary reason). At that exact point — and not a moment before — both files move together into `layout/sidebar/`: `layout/sidebar/sidebar.tsx` + `layout/sidebar/nav-item.tsx`.
+  - Before that second file exists, giving `sidebar.tsx` a folder of its own is exactly the premature structuring this rule forbids — it stays flat as `layout/sidebar.tsx`.
 
 ### Don't Split Into Subcomponents Unless Actually Reused
 
 - Default to one file per component, not a component tree. `Sidebar` holds its logo, nav list, and footer inline in one file — do not pre-emptively extract `sidebar-logo.tsx`, `nav-links.tsx`, `sidebar-footer.tsx`, etc. unless those pieces are actually rendered from more than one place.
 - **Split on the second occurrence, never the first.** When building a component for the first time, write it as one file even if a piece of it looks reusable in principle. Extract a shared subcomponent only once you're implementing a second place that genuinely needs the same markup/logic, then reuse it in both. Splitting speculatively "just in case" is forbidden — over-fragmenting into files nothing ever imports twice is exactly what this rule prevents.
 - Judge reuse the way it actually plays out in a SaaS product, not hypothetically: a `NavItem` may genuinely deserve extraction if the same links render in both a sidebar and a command palette or mobile drawer — extract it once that second usage exists, not in anticipation of it. A `Sidebar`, `Header`, `Footer`, or `AppShell` itself is normally mounted exactly once in the whole app (from the root/section `layout.tsx`) — it does not get split into subcomponents just because it has multiple visual sections.
+- **Reuse isn't the only valid reason to extract on the first occurrence.** Two other reasons stand on their own, independent of reuse:
+  - **Render-cost isolation:** if a piece has its own local, high-frequency state (hover, a local open/close toggle) and the parent is non-trivial (maps a sizeable list, renders an expensive tree), extract that piece so its state changes don't re-render the whole parent. Skip this for small parents — the cost of re-rendering a handful of children isn't worth a new file, and reaching for this on every `useState` is exactly the kind of speculative splitting this section otherwise forbids.
+  - **Server/client boundary:** see Server & Client Components → Components.
+- **Mixed responsibilities are a reason to split; size by itself isn't.** Split a component when it's doing two or more independent things (e.g. filtering logic + state management + list rendering + animation, all in one file). A file's length (300-400+ lines), difficulty locating code in it, or an oversized prop list (7-8+ props) aren't reasons on their own — they're symptoms that usually mean responsibilities have already mixed together, worth checking for exactly that before deciding whether or how to split.
 
 ### Layering, Assembly & Styling Rules
 
-- **Directional imports:** hierarchy is `blocks` → `elements` → `ui`. A higher layer may import a lower one; a lower layer must never import a higher one.
-- **Check before creating:** before adding any new `ui`, `elements`, or `blocks` component, check whether one already exists and reuse/extend it instead of duplicating.
-- **Check the full shadcn registry, not just the handful already installed:** before hand-writing any markup/logic inside an `elements/` component (error text, label wiring, prefix/suffix icons, show/hide toggles, etc.), check whether shadcn already ships a purpose-built primitive for it — run `npx shadcn@latest view <name>` or browse https://ui.shadcn.com/docs/components. The registry has ~65 components, most not yet pulled into this project (e.g. `field`/`field-label`/`field-error` for form-field composition, `input-group` for prefixed/suffixed inputs, `input-otp`, `combobox`) — don't assume the primitives already in `components/ui/` are the only ones available. A missed match means reinventing accessibility/state wiring (ARIA attributes, invalid/disabled propagation, error-list de-duplication, etc.) that's already solved upstream.
-- **Never consume shadcn primitives raw:** each primitive (or small related group) must be wrapped in a dedicated `elements/` component owning its domain logic, labels, state, and error handling (e.g. `ui/field.tsx` (`Field`/`FieldLabel`/`FieldError`) + `ui/input-group.tsx` (`InputGroup`/`InputGroupInput`) → `elements/text-field.tsx`; the app uses `TextField`, never the raw parts).
-- **Text-style field elements are built on `InputGroup`:** any `elements/` component wrapping a text-style input (`text-field.tsx` and friends) uses `InputGroup` + `InputGroupInput`, never the bare `ui/input.tsx` directly — even when no affix is needed yet. Expose optional `prefix`/`suffix` props (rendered via `InputGroupAddon`) so icons, currency symbols, unit labels, or show/hide-password toggles can be added later through props alone, with no restructuring of the component or its call sites.
+- **Directional imports:** hierarchy is `layout` / `features` → `common` → `ui`. A higher layer may import a lower one; a lower layer must never import a higher one. `layout/` and `features/` are peer top-tier layers — neither imports from the other.
+- **Check before creating:** before adding any new `ui`, `common`, `layout`, or `features` component, check whether one already exists and reuse/extend it instead of duplicating.
+- **Check the full shadcn registry, not just the handful already installed:** before hand-writing any markup/logic inside a `common/` component (error text, label wiring, prefix/suffix icons, show/hide toggles, etc.), check whether shadcn already ships a purpose-built primitive for it — run `npx shadcn@latest view <name>` or browse https://ui.shadcn.com/docs/components. The registry has ~65 components, most not yet pulled into this project (e.g. `field`/`field-label`/`field-error` for form-field composition, `input-group` for prefixed/suffixed inputs, `input-otp`, `combobox`) — don't assume the primitives already in `components/ui/` are the only ones available. A missed match means reinventing accessibility/state wiring (ARIA attributes, invalid/disabled propagation, error-list de-duplication, etc.) that's already solved upstream.
+- **Never consume shadcn primitives raw:** each primitive (or small related group) must be wrapped in a dedicated `common/` component owning its domain logic, labels, state, and error handling (e.g. `ui/field.tsx` (`Field`/`FieldLabel`/`FieldError`) + `ui/input-group.tsx` (`InputGroup`/`InputGroupInput`) → `common/text-field.tsx`; the app uses `TextField`, never the raw parts).
+- **Text-style field elements are built on `InputGroup`:** any `common/` component wrapping a text-style input (`text-field.tsx` and friends) uses `InputGroup` + `InputGroupInput`, never the bare `ui/input.tsx` directly — even when no affix is needed yet. Expose optional `prefix`/`suffix` props (rendered via `InputGroupAddon`) so icons, currency symbols, unit labels, or show/hide-password toggles can be added later through props alone, with no restructuring of the component or its call sites.
 - **Split components by mechanism, not by label:** if two variants share the same underlying interaction mechanism and differ only in prop values (type, placeholder, validation, copy), they are one component configured via props — not separate files. A single `TextField` covers email, password, and any other text-style input; don't create `PasswordField`, `EmailField`, etc. as separate components. Split into genuinely separate components only when the underlying mechanism differs (e.g. a text field vs. a select/dropdown vs. a drag-and-drop dropzone) — those don't share internals and forcing them into one component would just be a conditional maze.
-- **Name the discriminator, don't split on it:** any `elements/` component with more than one semantic variant of the same mechanism exposes a single explicit discriminator prop — `variant` by default; reuse a more specific name only where it already carries that meaning in the DOM (e.g. input `type` for email/password/text). Define the prop even when only one call site exists today. Before creating a new component for what looks like a new case, check whether an existing component's discriminator prop can just take a new value instead.
-- **Pages are orchestrators:** `page.tsx` assembles only `blocks` and `elements` — never raw HTML controls or raw shadcn primitives. If a combination of elements is used on one page only, assemble it inline in a plain `div`; extract it into a `blocks` component only once the same combination is actually duplicated across a second page/feature (see Don't Split Into Subcomponents Unless Actually Reused above).
-- **Blocks stay in blocks:** `Header`, `Sidebar`, `Footer`, `AppShell`, and other structural/compound blocks are consumed only from the root/section `layout.tsx` — never reused as building blocks inside feature pages.
-- **No abstract layout primitives:** don't introduce `VStack`/`HStack`-style wrappers, and don't use shadcn's `Card` as a page-layout shortcut. Build page/section layout with plain `<div>`/`<section>` styled via Tailwind utilities (`flex`, `grid`, `gap-*`, `space-*`), placing your own `elements`/`blocks` components inside.
+- **Name the discriminator, don't split on it:** any `common/` component with more than one semantic variant of the same mechanism exposes a single explicit discriminator prop — `variant` by default; reuse a more specific name only where it already carries that meaning in the DOM (e.g. input `type` for email/password/text). Define the prop even when only one call site exists today. Before creating a new component for what looks like a new case, check whether an existing component's discriminator prop can just take a new value instead.
+- **Pages are orchestrators:** `page.tsx` assembles only `common` and `features` components — never raw HTML controls, raw shadcn primitives, or `layout/` components directly (those are consumed exclusively from `layout.tsx` — see "Layout stays in layout" below). If a combination of `common` components is used on one page only, assemble it inline in a plain `div`; extract it into a `features/<feature-name>/` component only once the same combination is actually duplicated across a second page within that feature (see Don't Split Into Subcomponents Unless Actually Reused above).
+  - This reuse gate is specifically about compound UI assembled from `common/` pieces. It does not apply to a piece extracted purely for the server/client boundary or render-isolation (see Server & Client Components → Components) — that kind of split colocates with its parent immediately, even on the first occurrence: a page's client-only piece sits next to `page.tsx` in the same `app/` route folder (e.g. `app/login-form.tsx`), not in `components/features/`, until it's genuinely needed on a second page.
+- **Layout stays in layout:** `Header`, `Sidebar`, `Footer`, `AppShell`, and other app-chrome are consumed only from the root/section `layout.tsx` — never reused inside feature pages.
+- **No abstract layout primitives:** don't introduce `VStack`/`HStack`-style wrappers, and don't use shadcn's `Card` as a page-layout shortcut. Build page/section layout with plain `<div>`/`<section>` styled via Tailwind utilities (`flex`, `grid`, `gap-*`, `space-*`), placing your own `common`/`features` components inside.
 
 ---
 
@@ -335,6 +367,7 @@ if (userError || !user)
 
 - Never trust a `user_id` passed from the client — always override it with the authenticated `user.id` from the session.
 - Always chain `.eq('user_id', user.id)` on queries to enforce tenant/ownership isolation.
+- **Extract repeated validate → auth → ownership boilerplate — split on the second occurrence, never the first** (same rule as Component Architecture → Don't Split Into Subcomponents Unless Actually Reused). Write the first action's/service's `schema.safeParse` → `getUser()` → ownership-check sequence inline. Once a second action/service in the same file needs the identical sequence, extract a shared private helper (not exported, not itself a Server Action/route handler) that returns the authenticated context instead of copy-pasting the block again. Shape the helper's return like the existing `{ data, error }` convention — e.g. `{ context: { supabase, user, input }, error }` — so callers narrow it with the same `if (error || !context)` idiom already used for `getUser()`, no manual `!` assertions needed.
 
 _(For raw route-handler-level auth checks against `supabase.auth.getUser()` directly, see RESTful API Architecture → Endpoint Security & Route Protection.)_
 
@@ -352,6 +385,8 @@ catch (error) {
   return { data: null, error: error instanceof Error ? error.message : 'Unknown server error' };
 }
 ```
+
+- **`'Unknown server error'` is the catch-all's last resort, never a first-class return value.** Use it only when the thrown value isn't an `Error` (or carries no usable message). Everywhere else — Supabase/Postgres errors, explicit early returns — surface the real message (`nodeError?.message`, `flowError?.message`, etc.) instead of writing a generic string by hand. A vague error is undebuggable for both the developer and (see Error Handling & Display) the support path back to the user.
 
 ### Server Actions Pattern
 
@@ -434,6 +469,16 @@ if (!response.ok) throw new Error(error || 'Default fallback message');
 
 ---
 
+## Error Handling & Display
+
+The `error` string inside `ActionResponse`/`ServiceResponse` always carries the real, descriptive message (see Data Layer → Validation & Error Handling). What the client does with that string depends on who the error belongs to:
+
+- **User-actionable errors** — the user's own input is what's wrong (failed field validation, a value that conflicts with something, a business rule like "This node is already connected to a destination"). Show the real message inline at the point of failure — under the relevant field via the element's own error state (see Component Architecture → Layer Definitions), or as the form's top-level error. The user needs this text to fix what they did.
+- **System-level errors** — the failure is ours, not the user's (an unhandled exception, a Supabase/DB call that failed, a network error, anything landing in the generic catch-all). Never render this raw string to the user. Show a short, generic, human-readable message instead (e.g. "Something went wrong. Please try again.") and log the real error via `console.error` (or `console.warn` for non-fatal/degraded cases) so it's visible in devtools. The user is never responsible for reading a stack trace or a backend error string.
+- When it's ambiguous which bucket an error falls into, default to treating it as system-level: generic message to the user, real message to the console.
+
+---
+
 ## Types & Zod Schemas
 
 ### Type Inference from Zod
@@ -467,7 +512,7 @@ export type AuthInput = z.infer<typeof authSchema>;
   - Component props: `<Name>Props` (`UserCardProps`, `SidebarProps`)
   - Forms/inputs: `<Name>FormValues` or `<Action><Entity>Input` (`CreateProjectInput`, `UserFormValues`)
   - API payloads/responses: `<Action><Entity>Payload` / `<Action><Entity>Response` (`UpdateUserPayload`, `FetchProjectsResponse`)
-- **The extracted `<Name>Props` interface is for `components/` only.** It exists because components (`ui`/`elements`/`blocks`) tend to accumulate many, often reused, props. `app/**/page.tsx` and `app/**/layout.tsx` don't get this treatment — their prop shape is small and fixed (`children`, route `params`, `searchParams`), so type it inline instead of naming a one-off interface: `export default function DashboardLayout({ children }: { children: React.ReactNode })`, not a separate `DashboardLayoutProps` declared above it.
+- **The extracted `<Name>Props` interface is for `components/` only.** It exists because components (`ui`/`common`/`layout`/`features`) tend to accumulate many, often reused, props. `app/**/page.tsx` and `app/**/layout.tsx` don't get this treatment — their prop shape is small and fixed (`children`, route `params`, `searchParams`), so type it inline instead of naming a one-off interface: `export default function DashboardLayout({ children }: { children: React.ReactNode })`, not a separate `DashboardLayoutProps` declared above it.
 
 ---
 

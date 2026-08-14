@@ -1,4 +1,4 @@
-import { Sidebar } from '@/components/blocks/sidebar';
+import { Sidebar } from '@/components/layout/sidebar';
 
 interface AppShellProps {
   children: React.ReactNode;

@@ -1,0 +1,70 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+import { registerUser } from '@/actions/auth';
+import { registerSchema, type RegisterFormValues } from '@/schemas/auth';
+import { TextField } from '@/components/common/text-field';
+import { Button } from '@/components/common/button';
+import { Alert } from '@/components/common/alert';
+
+export function RegisterForm() {
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    defaultValues: { email: '', password: '' },
+  });
+
+  const onSubmit = handleSubmit(async (values) => {
+    setServerError(null);
+    const { error } = await registerUser(values);
+    if (error) {
+      setServerError(error);
+      return;
+    }
+    router.push(`/register/confirm?email=${encodeURIComponent(values.email)}`);
+  });
+
+  return (
+    <>
+      {serverError && (
+        <div className="mt-4">
+          <Alert message={serverError} />
+        </div>
+      )}
+
+      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+        <TextField
+          control={control}
+          name="email"
+          label="Email"
+          type="email"
+          placeholder="example@email.com"
+          autoComplete="email"
+        />
+        <TextField
+          control={control}
+          name="password"
+          label="Password"
+          type="password"
+          placeholder="••••••••"
+          autoComplete="new-password"
+        />
+        <Button type="submit" isSubmitting={isSubmitting}>
+          Create account
+        </Button>
+      </form>
+    </>
+  );
+}

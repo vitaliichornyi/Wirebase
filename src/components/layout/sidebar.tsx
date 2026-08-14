@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 
 import { logoutUser } from '@/actions/auth';
-import { Button } from '@/components/elements/button';
-import { IconButton } from '@/components/elements/icon-button';
-import { UserAvatar } from '@/components/elements/user-avatar';
+import { Button } from '@/components/common/button';
+import { IconButton } from '@/components/common/icon-button';
+import { UserAvatar } from '@/components/common/user-avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,

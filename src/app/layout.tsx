@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/providers/tooltip-provider';
 
 const inter = Inter({
   variable: '--font-sans',

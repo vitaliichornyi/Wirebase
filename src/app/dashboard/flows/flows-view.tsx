@@ -7,12 +7,13 @@ import { Archive, ArchiveRestore, BarChart3, MoreVertical } from 'lucide-react';
 
 import type { FlowListItem } from '@/actions/flows';
 import { createFlow, updateFlowStatus } from '@/actions/flows';
-import { Alert } from '@/components/elements/alert';
-import { Badge } from '@/components/elements/badge';
-import { Button } from '@/components/elements/button';
-import { IconButton } from '@/components/elements/icon-button';
-import { SearchField } from '@/components/elements/search-field';
-import { Switch } from '@/components/elements/switch';
+import { Alert } from '@/components/common/alert';
+import { Badge } from '@/components/common/badge';
+import { Button } from '@/components/common/button';
+import { DataTable, type DataTableColumn } from '@/components/common/data-table';
+import { IconButton } from '@/components/common/icon-button';
+import { SearchField } from '@/components/common/search-field';
+import { Switch } from '@/components/common/switch';
 import { buttonVariants } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,14 +21,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDate } from '@/lib/utils';
 import type { FlowStatus } from '@/types/flows';
@@ -103,6 +96,94 @@ export function FlowsView({ initialFlows }: FlowsViewProps) {
     );
   };
 
+  const columns: DataTableColumn<FlowListItem>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      cellClassName: 'font-medium',
+      render: (flow) => flow.name,
+    },
+    {
+      key: 'created',
+      header: 'Created',
+      render: (flow) => formatDate(flow.createdAt),
+    },
+    {
+      key: 'edited',
+      header: 'Edited',
+      render: (flow) => formatDate(flow.updatedAt),
+    },
+    {
+      key: 'links',
+      header: 'Links',
+      render: (flow) => flow.linkCount,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (flow) => (
+        <Badge variant={STATUS_CONFIG[flow.status].variant}>
+          {STATUS_CONFIG[flow.status].label}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      headerClassName: 'text-right',
+      render: (flow) => (
+        <div className="flex items-center justify-end gap-1">
+          {flow.status !== 'archived' && (
+            <Switch
+              checked={flow.status === 'active'}
+              disabled={pendingFlowId === flow.id}
+              onCheckedChange={(checked) =>
+                handleStatusChange(flow.id, checked ? 'active' : 'inactive')
+              }
+              aria-label={flow.status === 'active' ? 'Set flow inactive' : 'Set flow active'}
+            />
+          )}
+
+          <IconButton
+            label="View dashboard"
+            nativeButton={false}
+            render={<Link href={`/dashboard?flowId=${flow.id}`} />}
+          >
+            <BarChart3 />
+          </IconButton>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="More options"
+              className={buttonVariants({ variant: 'ghost', size: 'icon' })}
+            >
+              <MoreVertical />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {flow.status === 'archived' ? (
+                <DropdownMenuItem
+                  disabled={pendingFlowId === flow.id}
+                  onClick={() => handleStatusChange(flow.id, 'active')}
+                >
+                  <ArchiveRestore />
+                  Unarchive
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  disabled={pendingFlowId === flow.id}
+                  onClick={() => handleStatusChange(flow.id, 'archived')}
+                >
+                  <Archive />
+                  Archive
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ),
+    },
+  ];
+
   if (flows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
@@ -132,10 +213,7 @@ export function FlowsView({ initialFlows }: FlowsViewProps) {
       {errorMessage && <Alert message={errorMessage} />}
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Tabs
-          value={view}
-          onValueChange={(value) => setView(value as FlowsListView)}
-        >
+        <Tabs value={view} onValueChange={(value) => setView(value as FlowsListView)}>
           <TabsList>
             <TabsTrigger value="active">Active</TabsTrigger>
             <TabsTrigger value="archived">Archived</TabsTrigger>
@@ -152,93 +230,12 @@ export function FlowsView({ initialFlows }: FlowsViewProps) {
         </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Edited</TableHead>
-            <TableHead>Links</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {visibleFlows.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
-                No flows found.
-              </TableCell>
-            </TableRow>
-          ) : (
-            visibleFlows.map((flow) => (
-              <TableRow key={flow.id}>
-                <TableCell className="font-medium">{flow.name}</TableCell>
-                <TableCell>{formatDate(flow.createdAt)}</TableCell>
-                <TableCell>{formatDate(flow.updatedAt)}</TableCell>
-                <TableCell>{flow.linkCount}</TableCell>
-                <TableCell>
-                  <Badge variant={STATUS_CONFIG[flow.status].variant}>
-                    {STATUS_CONFIG[flow.status].label}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-1">
-                    {flow.status !== 'archived' && (
-                      <Switch
-                        checked={flow.status === 'active'}
-                        disabled={pendingFlowId === flow.id}
-                        onCheckedChange={(checked) =>
-                          handleStatusChange(flow.id, checked ? 'active' : 'inactive')
-                        }
-                        aria-label={
-                          flow.status === 'active' ? 'Set flow inactive' : 'Set flow active'
-                        }
-                      />
-                    )}
-
-                    <IconButton
-                      label="View dashboard"
-                      nativeButton={false}
-                      render={<Link href={`/dashboard?flowId=${flow.id}`} />}
-                    >
-                      <BarChart3 />
-                    </IconButton>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        aria-label="More options"
-                        className={buttonVariants({ variant: 'ghost', size: 'icon' })}
-                      >
-                        <MoreVertical />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {flow.status === 'archived' ? (
-                          <DropdownMenuItem
-                            disabled={pendingFlowId === flow.id}
-                            onClick={() => handleStatusChange(flow.id, 'active')}
-                          >
-                            <ArchiveRestore />
-                            Unarchive
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem
-                            disabled={pendingFlowId === flow.id}
-                            onClick={() => handleStatusChange(flow.id, 'archived')}
-                          >
-                            <Archive />
-                            Archive
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={columns}
+        data={visibleFlows}
+        getRowKey={(flow) => flow.id}
+        emptyMessage="No flows found."
+      />
     </div>
   );
 }
