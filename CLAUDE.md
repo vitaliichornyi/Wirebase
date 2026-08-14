@@ -373,6 +373,13 @@ if (userError || !user)
 
 _(For raw route-handler-level auth checks against `supabase.auth.getUser()` directly, see RESTful API Architecture → Endpoint Security & Route Protection.)_
 
+**Public & unauthenticated data access:**
+
+- Any route reachable by an unauthenticated visitor (a public Route Handler, a redirect route, a webhook) must never query internal or user-owned tables directly via `.select()`/`.insert()`/etc. This applies whenever such a route exists in the app, regardless of which data-fetching pattern (Server Actions or API Routes) is selected for the rest of it — it's not scoped to either pattern.
+- Instead, expose a narrow Postgres function (`security definer`) and call it via `supabase.rpc('function_name', { params })`. The function's own SQL is the sole author of what gets read or written — it enforces the boundary at the database level, so the caller can never widen the request, unlike a direct query where a loosened RLS policy or a client-crafted `.select()` could leak more than intended.
+- Revoke `execute` on that function from any role that doesn't need it (e.g. `authenticated`, if only anonymous requests ever call it) — the function's grants are as much a part of the access boundary as its SQL body.
+- This is separate from the already-authenticated case above: protected actions/services still just use `.eq('user_id', user.id)` + RLS. RPC is specifically for callers with no identity to filter by at all.
+
 **Typing:**
 
 - Arguments and return values are strongly typed end-to-end using domain interfaces from `src/types/`, from DB model to UI (see Types & Zod Schemas for type-naming standards).
@@ -450,12 +457,6 @@ Business logic and `try / catch` blocks live in the service function, not the ro
 - `401 Unauthorized` — service error message is exactly `'Unauthorized'`
 
 Data endpoints respond `{ data, error }`; simple action endpoints (e.g. auth) respond `{ error }`.
-
-**Supabase security & public data isolation:**
-
-- Unauthenticated/public users must never query internal tables or private records directly.
-- For any public/unauthenticated access to restricted data, use a Postgres function via `supabase.rpc('function_name', { params })` instead of a direct `.select()` on sensitive tables — this enforces DB-level access control and exposes only the allowed fields.
-- Protected service operations must explicitly filter by `user_id` (see Shared Standards → Authentication & Authorization).
 
 **Client data fetching (TanStack Query):**
 
