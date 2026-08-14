@@ -198,6 +198,15 @@ describe('GET /c/[slug]', () => {
     expect(await response.text()).toContain("isn't set up");
   });
 
+  it('shows a not-set-up page for a malformed slug, without ever querying the database', async () => {
+    const response = await GET(buildRequest("'; drop table nodes; --"), {
+      params: Promise.resolve({ slug: "'; drop table nodes; --" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("isn't set up");
+  });
+
   it('shows a not-set-up page when the Input node is disabled', async () => {
     const output = await createOutputNodeRow(user.id, flow.id, 'https://example.com');
     const input = await createInputNodeRow(user.id, flow.id, { input_status: 'disabled' });

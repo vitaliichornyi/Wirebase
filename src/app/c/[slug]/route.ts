@@ -2,6 +2,7 @@ import { after, NextResponse, type NextRequest } from 'next/server';
 
 import { createPublicClient } from '@/lib/supabase/public';
 import { buildRedirectUrl } from '@/lib/utm';
+import { redirectSlugSchema } from '@/schemas/nodes';
 
 const NOT_SET_UP_HTML = `<!doctype html>
 <html lang="en">
@@ -46,9 +47,15 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
+
+  const parsedSlug = redirectSlugSchema.safeParse(slug);
+  if (!parsedSlug.success) {
+    return notSetUpResponse();
+  }
+
   const supabase = createPublicClient();
 
-  const { data } = await supabase.rpc('resolve_redirect', { p_slug: slug });
+  const { data } = await supabase.rpc('resolve_redirect', { p_slug: parsedSlug.data });
   const resolution = (data as ResolveRedirectRow[] | null)?.[0];
 
   if (!resolution || !resolution.is_active || !resolution.destination_url) {
