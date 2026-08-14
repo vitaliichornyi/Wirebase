@@ -1,5 +1,10 @@
 'use client';
 
+// Deliberately client (CLAUDE.md: Server & Client Components → Pages):
+// this is a protected page with no SEO/social-preview need, and a
+// client-fetch-and-spinner loading state is the preferred UX here over
+// an instant server-render.
+
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
