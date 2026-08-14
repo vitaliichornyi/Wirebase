@@ -171,6 +171,23 @@ Access control is handled strictly in `src/proxy.ts` (Next.js Proxy — `middlew
 
 ## Server & Client Components
 
+### Decision Procedure
+
+Two independent questions. Answer them in this order — they are not the same question asked twice, and neither substitutes for the other.
+
+**1. Should this page (`page.tsx`) itself be Server or Client?**
+- Nothing on the page needs client capabilities (a hook, an event handler, a browser API) → Server. Done — this covers most pages (e.g. `dashboard/page.tsx`, `register/confirm/page.tsx`).
+- Something does, but the page's main content doesn't depend on waiting for a server fetch before it can render (e.g. a form that's empty until submitted), or the page needs SEO/social-preview support → Server is mandatory. Extract the client-needing piece into its own file (question 2) — this is why `login-form.tsx`/`register-form.tsx` exist next to server `page.tsx` files, not because the page needed SEO, but because there was nothing to fetch.
+- Something does, AND the page's main content genuinely can't be shown before a server fetch resolves, AND the page needs no SEO/social-preview support → a real trade-off exists, not a forced answer — see "A whole page may deliberately go client..." below.
+
+**2. Does a specific piece of UI need its own file?**
+Only when at least one holds — otherwise it's inline JSX/logic in the existing file, nothing to extract:
+- **Reuse** on a real second occurrence (see Component Architecture → Don't Split Into Subcomponents Unless Actually Reused).
+- **Render-isolation**: its own high-frequency local state, and a non-trivial parent that shouldn't re-render on every change.
+- **Server/client boundary**: the parent must stay Server (per question 1), and this piece needs client.
+
+A loading state scoped to part of an *already-client* page's JSX satisfies none of these — it stays inline as an ordinary conditional, no new file (e.g. gating just a table's rows behind `isLoading`, while the rest of the page's JSX renders unconditionally).
+
 ### Pages
 
 - Pages are Server Components by default. Only add `'use client'` to a page when one of the justifications below actually applies — default to server otherwise.
@@ -180,6 +197,7 @@ Access control is handled strictly in `src/proxy.ts` (Next.js Proxy — `middlew
   - **No SEO/social-preview need.** The server-first default exists largely to cover that need plus first-paint cost. Most pages inside the Protected Section qualify (never indexed, never shared expecting a rich preview) — being behind auth isn't itself the criterion, lacking any SEO/social-preview need is (a public page with no content value of its own could qualify too).
   - **Something to actually fetch on mount.** This only makes sense for a page that loads data taking real, visible time (e.g. a list fetched via a Server Action called from `useEffect`) — not for a page that's just interactive with no initial load, like a form only submitted on click. A page with nothing to fetch gets zero benefit from going client; it stays server by the default rule above, with the interactive piece split into its own Client Component (this is the ordinary, unrelated reason a login or registration form lives in its own file next to a server `page.tsx` — no loading state involved, no SEO reasoning needed either).
   - Where both genuinely hold, the owner may choose a Client Component that fetches on mount and shows a loading state instead of an instant server-rendered result — a legitimate trade-off, not a default. Leave a short comment at the top of the file stating the reasoning, so a future reviewer doesn't mistake it for a missed split. A Server Action called this way is exactly as safe as one called from a Server Component — it still authorizes and executes entirely server-side regardless of where it's invoked from; only the fetch timing changes, not where it runs.
+  - **Why this trade-off can genuinely beat the server-rendered default:** an `async` Server Component page that `await`s a slow or unpredictable query blocks the *entire* response — including layout chrome that has nothing to do with that query (e.g. the sidebar) — until it resolves, unless the slow part is explicitly wrapped in React Suspense to stream separately. A Client Component that fetches via `useEffect` sidesteps this without any Suspense setup: the page's shell renders immediately regardless of how long the fetch takes, and only the data-dependent part shows a loading state — gate that loading state narrowly (e.g. around just a table's rows), not the whole page, once something is actually ready to show unconditionally. This is the real reason to prefer it, not a stylistic preference for spinners.
 - **Best practice:** prefer a Server Component page that renders one or more Client Components for the interactive parts, rather than marking the whole page `'use client'`. This is better for performance, SEO, and maintainability — reach for a fully client page only when actually necessary.
 
 ### Components
