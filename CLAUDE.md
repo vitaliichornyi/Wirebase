@@ -130,6 +130,7 @@ src/
 ### File & Code Naming Conventions
 
 - **Core philosophy:** avoid micro-files. Group all closely related operations for a feature into one file by domain/module (e.g. `auth.ts` covers `login`, `logout`, `refreshToken`; `links.ts`, `links-analytics.ts`).
+- **Stay flat until a second, genuinely independent domain exists.** `actions/`, `types/`, and `schemas/` group files by domain entity (one file per domain, e.g. `flows.ts`, `nodes.ts`) directly inside the layer folder, not inside a per-feature subfolder — don't wrap them in something like `actions/flow-editor/` just because every domain file today happens to belong to the app's one current product area. This mirrors Component Architecture's "split on second occurrence": introduce feature-scoped subfolders here only once a second, unrelated domain (e.g. billing, teams) needs its own set of action/type/schema files — so the grouping actually separates two real clusters instead of wrapping everything that already exists.
 - **File naming:** kebab-case only, everywhere. Pattern: `domain.ts` or `domain-submodule.ts`.
 
 | Location                                       | File naming                                       | Symbol naming                                     | Example                                                                     |
