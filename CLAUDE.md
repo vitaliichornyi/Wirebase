@@ -171,34 +171,29 @@ Access control is handled strictly in `src/proxy.ts` (Next.js Proxy — `middlew
 
 ## Server & Client Components
 
-### Decision Procedure
+### Defaults
 
-Two independent questions. Answer them in this order — they are not the same question asked twice, and neither substitutes for the other.
+- `layout.tsx` (root and nested) is always a Server Component — no exception, ever. Layouts only wrap pages/route groups with shared structure; whatever interactivity is needed belongs in what they render, not in the layout itself.
+- `page.tsx` is a Server Component by default. It goes client directly only when the entire page is genuinely client-driven and there's nothing on it worth keeping server — no fetch to `await`, no static/instant part worth splitting out into its own piece. Introducing a server `page.tsx` that does nothing but render one client child, purely to keep the directive off `page.tsx` itself, is the kind of speculative splitting this file otherwise forbids (see Component Architecture → Don't Split Into Subcomponents Unless Actually Reused) — when there's truly nothing to gain from the split, mark `page.tsx` itself `'use client'`.
+- Whenever only *part* of a page needs client capabilities and something else on the page (a fetch, a static header, another region) genuinely benefits from staying server, extract the client-needing part — however large, up to nearly the whole visible content — into its own Client Component, and keep `page.tsx` Server. Size doesn't decide this; a real, isolable reason to keep something server does. This is why `login-form.tsx`/`register-form.tsx` sit next to server `page.tsx` files, and it's the same reason a data-driven page keeps `page.tsx` server and extracts its interactive part into a Client Component fed by props (see Fetching below).
 
-**1. Should this page (`page.tsx`) itself be Server or Client?**
-- Nothing on the page needs client capabilities (a hook, an event handler, a browser API) → Server. Done — this covers most pages (e.g. `dashboard/page.tsx`, `register/confirm/page.tsx`).
-- Something does, but the page's main content doesn't depend on waiting for a server fetch before it can render (e.g. a form that's empty until submitted), or the page needs SEO/social-preview support → Server is mandatory. Extract the client-needing piece into its own file (question 2) — this is why `login-form.tsx`/`register-form.tsx` exist next to server `page.tsx` files, not because the page needed SEO, but because there was nothing to fetch.
-- Something does, AND the page's main content genuinely can't be shown before a server fetch resolves, AND the page needs no SEO/social-preview support → a real trade-off exists, not a forced answer — see "A whole page may deliberately go client..." below.
+### Fetching
 
-**2. Does a specific piece of UI need its own file?**
-Only when at least one holds — otherwise it's inline JSX/logic in the existing file, nothing to extract:
-- **Reuse** on a real second occurrence (see Component Architecture → Don't Split Into Subcomponents Unless Actually Reused).
-- **Render-isolation**: its own high-frequency local state, and a non-trivial parent that shouldn't re-render on every change.
-- **Server/client boundary**: the parent must stay Server (per question 1), and this piece needs client.
+- Fetching is independent of whether a page ends up needing a client piece. It always happens in a Server Component — `page.tsx` itself, or a nested `async` Server Component further down — via a direct `await`, regardless of what's client above or below it.
+- `useEffect` is never the mechanism for a page's or a section's initial data load, in either data-fetching pattern:
+  - **Server Actions pattern (the default — see Data Layer → Pattern Selection):** `await` the Server Action directly in the Server Component.
+  - **API Routes + TanStack Query pattern:** `useQuery` is the fetching mechanism (see Data Layer → API Routes + TanStack Query Pattern), never a raw `useEffect` + `fetch`.
+  - Reserve `useEffect` itself for genuinely client-only concerns unrelated to initial data — subscriptions, browser APIs, syncing with something outside React's data flow.
 
-A loading state scoped to part of an *already-client* page's JSX satisfies none of these — it stays inline as an ordinary conditional, no new file (e.g. gating just a table's rows behind `isLoading`, while the rest of the page's JSX renders unconditionally).
+### Loading States
 
-### Pages
-
-- Pages are Server Components by default. Only add `'use client'` to a page when one of the justifications below actually applies — default to server otherwise.
-- **Keep a page server when:** it needs `generateMetadata` for SEO or social-preview cards; it reads data directly from the DB, an ORM, or an internal API; it relies on server-only context (`cookies()`, `headers()`); or its content is mostly static/read-only.
-- **Make a page client only when:** it's fundamentally driven by browser-only APIs (`window`, `localStorage`, WebSockets); it needs interactivity spanning the entire page (drag-and-drop, a multi-step wizard, a rich text editor); or the interactive logic genuinely can't be isolated into separate Client Components rendered from a server page.
-- **A whole page may deliberately go client for a fetch-and-loading-state UX, but only when both hold: no SEO/social-preview need, and there's actually something worth showing a loading state for.** Two separate conditions, both required:
-  - **No SEO/social-preview need.** The server-first default exists largely to cover that need plus first-paint cost. Most pages inside the Protected Section qualify (never indexed, never shared expecting a rich preview) — being behind auth isn't itself the criterion, lacking any SEO/social-preview need is (a public page with no content value of its own could qualify too).
-  - **Something to actually fetch on mount.** This only makes sense for a page that loads data taking real, visible time (e.g. a list fetched via a Server Action called from `useEffect`) — not for a page that's just interactive with no initial load, like a form only submitted on click. A page with nothing to fetch gets zero benefit from going client; it stays server by the default rule above, with the interactive piece split into its own Client Component (this is the ordinary, unrelated reason a login or registration form lives in its own file next to a server `page.tsx` — no loading state involved, no SEO reasoning needed either).
-  - Where both genuinely hold, the owner may choose a Client Component that fetches on mount and shows a loading state instead of an instant server-rendered result — a legitimate trade-off, not a default. Leave a short comment at the top of the file stating the reasoning, so a future reviewer doesn't mistake it for a missed split. A Server Action called this way is exactly as safe as one called from a Server Component — it still authorizes and executes entirely server-side regardless of where it's invoked from; only the fetch timing changes, not where it runs.
-  - **Why this trade-off can genuinely beat the server-rendered default:** an `async` Server Component page that `await`s a slow or unpredictable query blocks the *entire* response — including layout chrome that has nothing to do with that query (e.g. the sidebar) — until it resolves, unless the slow part is explicitly wrapped in React Suspense to stream separately. A Client Component that fetches via `useEffect` sidesteps this without any Suspense setup: the page's shell renders immediately regardless of how long the fetch takes, and only the data-dependent part shows a loading state — gate that loading state narrowly (e.g. around just a table's rows), not the whole page, once something is actually ready to show unconditionally. This is the real reason to prefer it, not a stylistic preference for spinners.
-- **Best practice:** prefer a Server Component page that renders one or more Client Components for the interactive parts, rather than marking the whole page `'use client'`. This is better for performance, SEO, and maintainability — reach for a fully client page only when actually necessary.
+- No fetch on a page → no `loading.tsx`, no `<Suspense>` — there's nothing to gate.
+- **A page's content isn't one monolithic loading unit.** A page can contain multiple independent data-dependent regions — each wrapped in its own `<Suspense>` around its own `async` Server Component — so they load and stream in parallel, each showing (or skipping) its own loading state, instead of one boundary gating the whole page.
+- Pick the mechanism by what else is on the page:
+  - Nothing else worth showing before the fetch resolves (the page's entire content is the data-dependent part) → `loading.tsx` at that route segment. Next wraps the segment in Suspense automatically — the parent layout (sidebar, etc.) renders immediately, the page's own content shows the fallback as one unit, with no manual Suspense boundary and no manual `isLoading` state.
+  - A genuinely independent static/instant part exists alongside a slower region (e.g. a header that renders instantly next to a data table that doesn't) → an explicit `<Suspense>` around just that region's `async` Server Component instead of — or in addition to — `loading.tsx`, since `loading.tsx` would blank the whole page's content, static parts included.
+- Whether to physically split a region into its own file/component still follows ordinary Component Architecture rules (reuse, render-isolation, a real need) — a fetch existing somewhere on the page is not itself a reason to fragment it into wrapper components. A single file with a single `loading.tsx` remains the right, simpler choice whenever the page has no genuinely independent regions worth streaming separately.
+- A loading state scoped to part of an *already-client* component's JSX (e.g. gating just a table's rows behind a client-side `isLoading` prop/state) stays an ordinary inline conditional — no new file, no Suspense boundary, since there's no server/client seam or streaming involved.
 
 ### Components
 
