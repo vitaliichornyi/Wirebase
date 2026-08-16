@@ -43,7 +43,7 @@ export function NavItem({
     <Button
       variant="ghost"
       className={cn(
-        'label-medium h-8 justify-start gap-2 px-1.5',
+        'label-medium justify-start gap-2 px-1.5',
         hoverClassName,
         activeClassName,
       )}

@@ -64,7 +64,7 @@ export function RegisterForm() {
             autoComplete="new-password"
           />
         </div>
-        <Button type="submit" isSubmitting={isSubmitting}>
+        <Button type="submit" isSubmitting={isSubmitting} size="large">
           Create account
         </Button>
       </form>

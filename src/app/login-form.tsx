@@ -61,7 +61,7 @@ export function LoginForm() {
             autoComplete="current-password"
           />
         </div>
-        <Button type="submit" isSubmitting={isSubmitting}>
+        <Button type="submit" isSubmitting={isSubmitting} size="large">
           Sign in
         </Button>
       </form>
