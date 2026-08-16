@@ -1,8 +1,11 @@
+import { cn } from '@/lib/utils';
+
 interface LogoProps {
   variant?: 'full' | 'icon';
+  className?: string;
 }
 
-export function Logo({ variant }: LogoProps) {
+export function Logo({ variant, className }: LogoProps) {
   return variant === 'full' ? (
     <svg
       width="114"
@@ -10,6 +13,7 @@ export function Logo({ variant }: LogoProps) {
       viewBox="0 0 114 26"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      className={className}
     >
       <g clipPath="url(#clip0_197_236)">
         <path
@@ -65,7 +69,7 @@ export function Logo({ variant }: LogoProps) {
     </svg>
   ) : (
     <svg
-      className="size-6.5"
+      className={cn('size-6.5', className)}
       width="26"
       height="26"
       viewBox="0 0 26 26"

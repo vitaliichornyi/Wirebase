@@ -1,11 +1,13 @@
 import { Headline } from '@/components/common/headline';
 import { LoginForm } from './login-form';
+import { Logo } from '@/components/common/logo';
 import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-6">
-      <div className="w-full max-w-sm">
+    <main className="relative flex flex-col items-center justify-center min-h-screen p-6">
+      <Logo variant="full" className="absolute top-6 left-6" />
+      <div className="w-full max-w-sm mb-6">
         <Headline as="h1" variant="large">
           Login to Wirebase
         </Headline>

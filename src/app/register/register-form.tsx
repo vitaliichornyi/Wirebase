@@ -45,23 +45,25 @@ export function RegisterForm() {
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-6">
-        <TextField
-          control={control}
-          name="email"
-          label="Email"
-          type="email"
-          placeholder="example@email.com"
-          autoComplete="email"
-        />
-        <TextField
-          control={control}
-          name="password"
-          label="Password"
-          type="password"
-          placeholder="••••••••"
-          autoComplete="new-password"
-        />
+      <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-4">
+        <div className="flex flex-col gap-3">
+          <TextField
+            control={control}
+            name="email"
+            label="Email"
+            type="email"
+            placeholder="example@email.com"
+            autoComplete="email"
+          />
+          <TextField
+            control={control}
+            name="password"
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            autoComplete="new-password"
+          />
+        </div>
         <Button type="submit" isSubmitting={isSubmitting}>
           Create account
         </Button>
