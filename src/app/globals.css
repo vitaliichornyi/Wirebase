@@ -142,10 +142,10 @@
     @apply 
   } */
   .headline-large {
-    @apply text-[1.5rem] leading-7 font-medium tracking-[-0.04em] pb-2;
+    @apply text-[1.5rem] leading-6 font-medium tracking-[-0.04em];
   }
   .headline-medium {
-    @apply text-[1.25rem] leading-6 font-medium tracking-[-0.02em];
+    @apply text-[1.25rem] leading-6 font-[650] tracking-[-0.03em];
   }
   /* .headline-small {
     @apply 
