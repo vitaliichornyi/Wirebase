@@ -10,6 +10,7 @@ import { registerSchema, type RegisterFormValues } from '@/schemas/auth';
 import { TextField } from '@/components/common/text-field';
 import { Button } from '@/components/common/button';
 import { Alert } from '@/components/common/alert';
+import { maskEmail } from '@/lib/email';
 
 export function RegisterForm() {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -31,7 +32,9 @@ export function RegisterForm() {
       setServerError(error);
       return;
     }
-    router.push(`/register/confirm?email=${encodeURIComponent(values.email)}`);
+    router.push(
+      `/register/confirm?email=${encodeURIComponent(maskEmail(values.email))}`,
+    );
   });
 
   return (

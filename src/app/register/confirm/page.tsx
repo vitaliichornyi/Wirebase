@@ -1,5 +1,4 @@
 import { Headline } from '@/components/common/headline';
-import { maskEmail } from '@/lib/email';
 import Link from 'next/link';
 
 export default async function RegisterConfirmPage({
@@ -8,7 +7,7 @@ export default async function RegisterConfirmPage({
   searchParams: Promise<{ email?: string }>;
 }) {
   const { email } = await searchParams;
-  const maskedEmail = email ? maskEmail(email) : 'your email';
+  const maskedEmail = email || 'your email';
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-6">
