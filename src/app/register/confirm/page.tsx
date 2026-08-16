@@ -1,6 +1,6 @@
-import Link from 'next/link';
-
+import { Headline } from '@/components/common/headline';
 import { maskEmail } from '@/lib/email';
+import Link from 'next/link';
 
 export default async function RegisterConfirmPage({
   searchParams,
@@ -11,15 +11,17 @@ export default async function RegisterConfirmPage({
   const maskedEmail = email ? maskEmail(email) : 'your email';
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="w-full max-w-sm text-center">
-        <h1 className="text-2xl font-bold">Check your email</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <main className="flex flex-col items-center justify-center min-h-screen p-6">
+      <div className="w-full max-w-sm">
+        <Headline as="h1" variant="large">
+          Check your email
+        </Headline>
+        <p className="body-medium text-muted-foreground">
           We sent a confirmation link to {maskedEmail}.
         </p>
         <Link
           href="/"
-          className="mt-6 inline-block text-sm text-primary underline-offset-4 hover:underline"
+          className="mt-4 body-medium text-primary underline-offset-4 hover:underline"
         >
           Back to login
         </Link>

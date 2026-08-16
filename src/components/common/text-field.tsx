@@ -40,11 +40,15 @@ export function TextField<TFieldValues extends FieldValues>({
       control={control}
       name={name}
       render={({ field, fieldState }) => (
-        <Field data-invalid={!!fieldState.error}>
-          <FieldLabel htmlFor={name}>{label}</FieldLabel>
-          <InputGroup>
+        <Field data-invalid={!!fieldState.error} className="gap-1.5">
+          <FieldLabel htmlFor={name} className="label-medium">
+            {label}
+          </FieldLabel>
+          <InputGroup className="h-10 overflow-hidden border-transparent bg-input-background has-[[data-slot=input-group-control]:focus-visible]:bg-background dark:bg-input-background/30">
             {prefix && (
-              <InputGroupAddon align="inline-start">{prefix}</InputGroupAddon>
+              <InputGroupAddon align="inline-start" className="body-medium">
+                {prefix}
+              </InputGroupAddon>
             )}
             <InputGroupInput
               {...field}
@@ -53,12 +57,16 @@ export function TextField<TFieldValues extends FieldValues>({
               placeholder={placeholder}
               autoComplete={autoComplete}
               aria-invalid={!!fieldState.error}
+              className="h-full body-medium"
             />
             {suffix && (
-              <InputGroupAddon align="inline-end">{suffix}</InputGroupAddon>
+              <InputGroupAddon align="inline-end" className="body-medium">
+                {suffix}
+              </InputGroupAddon>
             )}
           </InputGroup>
           <FieldError
+            className="label-medium"
             errors={fieldState.error ? [fieldState.error] : undefined}
           />
         </Field>

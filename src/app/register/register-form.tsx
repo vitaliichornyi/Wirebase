@@ -12,8 +12,8 @@ import { Button } from '@/components/common/button';
 import { Alert } from '@/components/common/alert';
 
 export function RegisterForm() {
-  const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const router = useRouter();
 
   const {
     control,
@@ -21,8 +21,6 @@ export function RegisterForm() {
     formState: { isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    mode: 'onSubmit',
-    reValidateMode: 'onChange',
     defaultValues: { email: '', password: '' },
   });
 
@@ -44,7 +42,7 @@ export function RegisterForm() {
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-6">
         <TextField
           control={control}
           name="email"
