@@ -1,3 +1,6 @@
+import { Button } from '@/components/common/button';
+import { PageHeader } from '@/components/common/page-header';
+
 export default function DashboardPage() {
-  return <h1 className="text-2xl font-bold">Dashboard</h1>;
+  return <PageHeader title="Dashboard" />;
 }

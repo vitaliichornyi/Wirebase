@@ -10,8 +10,12 @@ import { createFlow, updateFlowStatus } from '@/actions/flows';
 import { Alert } from '@/components/common/alert';
 import { Badge } from '@/components/common/badge';
 import { Button } from '@/components/common/button';
-import { DataTable, type DataTableColumn } from '@/components/common/data-table';
+import {
+  DataTable,
+  type DataTableColumn,
+} from '@/components/common/data-table';
 import { IconButton } from '@/components/common/icon-button';
+import { PageHeader } from '@/components/common/page-header';
 import { SearchField } from '@/components/common/search-field';
 import { Switch } from '@/components/common/switch';
 import { buttonVariants } from '@/components/ui/button';
@@ -31,7 +35,10 @@ interface FlowsTableProps {
 
 type FlowsListView = 'active' | 'archived';
 
-const STATUS_CONFIG: Record<FlowStatus, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
+const STATUS_CONFIG: Record<
+  FlowStatus,
+  { label: string; variant: 'default' | 'secondary' | 'outline' }
+> = {
   active: { label: 'Active', variant: 'default' },
   inactive: { label: 'Inactive', variant: 'secondary' },
   archived: { label: 'Archived', variant: 'outline' },
@@ -56,7 +63,9 @@ export function FlowsTable({ initialFlows }: FlowsTableProps) {
     const query = search.trim().toLowerCase();
     return flows
       .filter((flow) =>
-        view === 'archived' ? flow.status === 'archived' : flow.status !== 'archived',
+        view === 'archived'
+          ? flow.status === 'archived'
+          : flow.status !== 'archived',
       )
       .filter((flow) => !query || flow.name.toLowerCase().includes(query));
   }, [flows, search, view]);
@@ -91,7 +100,9 @@ export function FlowsTable({ initialFlows }: FlowsTableProps) {
     const updatedFlow = result.data;
     setFlows((previous) =>
       previous
-        .map((flow) => (flow.id === updatedFlow.id ? { ...flow, ...updatedFlow } : flow))
+        .map((flow) =>
+          flow.id === updatedFlow.id ? { ...flow, ...updatedFlow } : flow,
+        )
         .sort(byMostRecentlyEdited),
     );
   };
@@ -140,7 +151,11 @@ export function FlowsTable({ initialFlows }: FlowsTableProps) {
               onCheckedChange={(checked) =>
                 handleStatusChange(flow.id, checked ? 'active' : 'inactive')
               }
-              aria-label={flow.status === 'active' ? 'Set flow inactive' : 'Set flow active'}
+              aria-label={
+                flow.status === 'active'
+                  ? 'Set flow inactive'
+                  : 'Set flow active'
+              }
             />
           )}
 
@@ -190,7 +205,8 @@ export function FlowsTable({ initialFlows }: FlowsTableProps) {
         <div>
           <h1 className="text-2xl font-bold">Flows</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Build your first Flow to start routing traffic through a shareable link.
+            Build your first Flow to start routing traffic through a shareable
+            link.
           </p>
         </div>
         {errorMessage && <Alert message={errorMessage} />}
@@ -202,40 +218,44 @@ export function FlowsTable({ initialFlows }: FlowsTableProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Flows</h1>
+    <div className="flex flex-col">
+      <PageHeader title="Flows">
         <Button onClick={handleNewFlow} isSubmitting={isCreating}>
           New flow
         </Button>
-      </div>
+      </PageHeader>
 
-      {errorMessage && <Alert message={errorMessage} />}
+      <div className="flex flex-col gap-4 p-6 pt-0">
+        {errorMessage && <Alert message={errorMessage} />}
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Tabs value={view} onValueChange={(value) => setView(value as FlowsListView)}>
-          <TabsList>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="archived">Archived</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Tabs
+            value={view}
+            onValueChange={(value) => setView(value as FlowsListView)}
+          >
+            <TabsList>
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="archived">Archived</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-        <div className="w-full max-w-xs">
-          <SearchField
-            value={search}
-            onChange={setSearch}
-            placeholder="Search flows"
-            aria-label="Search flows by name"
-          />
+          <div className="w-full max-w-xs">
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              placeholder="Search flows"
+              aria-label="Search flows by name"
+            />
+          </div>
         </div>
-      </div>
 
-      <DataTable
-        columns={columns}
-        data={visibleFlows}
-        getRowKey={(flow) => flow.id}
-        emptyMessage="No flows found."
-      />
+        <DataTable
+          columns={columns}
+          data={visibleFlows}
+          getRowKey={(flow) => flow.id}
+          emptyMessage="No flows found."
+        />
+      </div>
     </div>
   );
 }
