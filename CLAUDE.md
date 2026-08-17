@@ -16,6 +16,7 @@ This file is read at the start of every session as the project's rule set — tr
   3. Never add a numbered section header (`## 1.`, `### 2.3`, etc.) — headers stay name-only, and cross-references point to header names in bold, never numbers (see why in git history / ask the user if unclear — a past renumbering silently broke every `§N` reference in this file).
 - **Before adding, check for conflicts.** If the new rule contradicts or overlaps an existing one, point out the conflict and ask how to resolve it rather than silently adding a duplicate or contradictory bullet.
 - **No unsolicited restructuring.** Bulk reorganizations (like the one that produced this file) happen only when the user explicitly asks for them — not as a side effect of adding one rule.
+- **Stay generic — this file is a cross-project style guide, not a spec for this project.** It encodes the user's own engineering style and conventions, reused across different projects — not a record of this specific project's entities, files, or one-off decisions. New rules must read as portable conventions (patterns, naming schemes, folder shapes) that would make sense in another codebase too. A concrete example is fine for illustration, but favor generic stand-ins (`format-date.ts`, `<feature-name>`) over this project's actual filenames when a generic one teaches the same rule just as well. Examples already in the file that happen to use this project's real names don't need to be swapped out retroactively — this only shapes how new rules get worded going forward.
 
 ---
 
