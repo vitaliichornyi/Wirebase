@@ -1,5 +1,4 @@
-import { Button } from '@/components/common/button';
-import { PageHeader } from '@/components/common/page-header';
+import { PageHeader } from '@/shared/ui/page-header';
 
 export default function DashboardPage() {
   return <PageHeader title="Dashboard" />;

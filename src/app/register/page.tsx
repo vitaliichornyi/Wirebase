@@ -1,6 +1,6 @@
-import { Headline } from '@/components/common/headline';
+import { Logo } from '@/shared/ui/logo';
+import { Headline } from '@/shared/ui/headline';
 import { RegisterForm } from './register-form';
-import { Logo } from '@/components/common/logo';
 import Link from 'next/link';
 
 export default function RegisterPage() {

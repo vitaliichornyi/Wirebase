@@ -1,5 +1,5 @@
-import { Headline } from '@/components/common/headline';
-import { Logo } from '@/components/common/logo';
+import { Logo } from '@/shared/ui/logo';
+import { Headline } from '@/shared/ui/headline';
 import Link from 'next/link';
 
 export default async function RegisterConfirmPage({

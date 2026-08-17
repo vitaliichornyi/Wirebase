@@ -5,11 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import { loginUser } from '@/actions/auth';
-import { loginSchema, type LoginFormValues } from '@/schemas/auth';
-import { TextField } from '@/components/common/text-field';
-import { Button } from '@/components/common/button';
-import { Alert } from '@/components/common/alert';
+import {
+  loginUser,
+  loginSchema,
+  type LoginFormValues,
+} from '@/features/auth';
+import { TextField } from '@/shared/ui/text-field';
+import { Button } from '@/shared/ui/button';
+import { Alert } from '@/shared/ui/alert';
 
 export function LoginForm() {
   const [serverError, setServerError] = useState<string | null>(null);

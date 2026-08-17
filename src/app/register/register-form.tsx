@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import { registerUser } from '@/actions/auth';
-import { registerSchema, type RegisterFormValues } from '@/schemas/auth';
-import { TextField } from '@/components/common/text-field';
-import { Button } from '@/components/common/button';
-import { Alert } from '@/components/common/alert';
-import { maskEmail } from '@/lib/email';
+import {
+  registerUser,
+  registerSchema,
+  type RegisterFormValues,
+} from '@/features/auth';
+import { TextField } from '@/shared/ui/text-field';
+import { Button } from '@/shared/ui/button';
+import { Alert } from '@/shared/ui/alert';
+import { maskEmail } from '@/shared/lib/email';
 
 export function RegisterForm() {
   const [serverError, setServerError] = useState<string | null>(null);

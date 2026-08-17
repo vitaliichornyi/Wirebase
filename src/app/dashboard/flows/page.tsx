@@ -1,7 +1,5 @@
-import { listFlows } from '@/actions/flows';
-import { Alert } from '@/components/common/alert';
-
-import { FlowsTable } from './flows-table';
+import { FlowsTable, listFlows } from '@/features/flows';
+import { Alert } from '@/shared/ui/alert';
 
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 
