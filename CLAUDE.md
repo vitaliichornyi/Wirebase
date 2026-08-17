@@ -207,7 +207,7 @@ When something from feature A is needed inside feature B:
 | `features/<name>/actions/` | kebab-case (`update-profile.ts`, `delete-user.ts`) | camelCase functions | `export const updateProfile = createSafeAction(updateUserSchema, ...)` |
 | `features/<name>/schemas/` | kebab-case (`user-schema.ts`, `links.ts`) | camelCase, suffixed `Schema` | `export const loginSchema = z.object({...})` |
 | `features/<name>/lib/` / constants | kebab-case (`generate-slug.ts`) | UPPER_SNAKE_CASE (constants); camelCase functions | `export const SLUG_LENGTH = 8;`, `export function generateSlug() {...}` |
-| `shared/lib/` / constants | kebab-case (`auth-constants.ts`, `api-routes.ts`) | UPPER_SNAKE_CASE (constants); camelCase functions | `export const MAX_RETRY_ATTEMPTS = 3;`, `export function maskEmail() {...}` |
+| `shared/lib/` / constants | kebab-case (`auth-constants.ts`, `api-routes.ts`) | UPPER_SNAKE_CASE (constants); camelCase functions | `export const MAX_RETRY_ATTEMPTS = 3;`, `export function formatDate() {...}` |
 | `features/<name>/hooks/`, `shared/hooks/` | kebab-case, `use-` prefix (`use-auth.ts`) | camelCase, `use` prefix | `export function useAuth() {...}` |
 
 ---
@@ -660,7 +660,7 @@ export type AuthInput = z.infer<typeof authSchema>;
 ### Function Syntax
 
 - **Components:** standard function declarations (`function ComponentName() {...}`).
-- **Top-level exported functions** — services (`features/<name>/services/`), hooks (`features/<name>/hooks/`, `shared/hooks/`), and `shared/lib/` helpers — standard function declarations (`export async function loginUser() {...}`, `export function useAuth() {...}`, `export function maskEmail() {...}`). Never `export const x = () => {...}` for these.
+- **Top-level exported functions** — services (`features/<name>/services/`), hooks (`features/<name>/hooks/`, `shared/hooks/`), and `shared/lib/`/`features/<name>/lib/` helpers — standard function declarations (`export async function loginUser() {...}`, `export function useAuth() {...}`, `export function formatDate() {...}`). Never `export const x = () => {...}` for these.
 - **A feature's `actions/` is the one exception:** an exported action is the return value of `createSafeAction(schema, handler)` (see Data Layer → Server Actions Pattern), so it's necessarily declared as `export const addInputNode = createSafeAction(addInputNodeSchema, async (input, user) => {...})`, not a `function` declaration. `createSafeAction` itself, in `shared/lib/create-safe-action.ts`, is a `shared/lib/` helper, so it follows that row's rule and stays a standard function declaration.
 - **Internal logic/handlers:** arrow functions for helpers, event handlers, callbacks defined _inside_ a component (`const handleClick = () => {...}`). Arrow functions are for this case only — not for standalone top-level functions.
 

@@ -13,7 +13,7 @@ import {
 import { TextField } from '@/shared/ui/text-field';
 import { Button } from '@/shared/ui/button';
 import { Alert } from '@/shared/ui/alert';
-import { maskEmail } from '@/shared/lib/email';
+import { maskEmail } from '@/features/auth/lib/mask-email';
 
 export function RegisterForm() {
   const [serverError, setServerError] = useState<string | null>(null);
