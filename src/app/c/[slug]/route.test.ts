@@ -2,7 +2,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { generateSlug } from '@/features/flows/lib/generate-slug';
+import { generateSlug } from '@/features/flows';
 import { createAdminClient, createTestUser, deleteTestUser, type TestUser } from '@/test-utils/supabase';
 
 import { GET } from './route';

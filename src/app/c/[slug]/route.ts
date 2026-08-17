@@ -1,7 +1,6 @@
 import { after, NextResponse, type NextRequest } from 'next/server';
 
-import { recordClick, resolveRedirect } from '@/features/flows/services/redirect-service';
-import { redirectSlugSchema } from '@/features/flows/schemas/nodes';
+import { recordClick, resolveRedirect, redirectSlugSchema } from '@/features/flows';
 
 const NOT_SET_UP_HTML = `<!doctype html>
 <html lang="en">
