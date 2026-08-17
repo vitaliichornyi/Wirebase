@@ -36,7 +36,7 @@ describe('createSafeAction', () => {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     );
     const handler = vi.fn();
-    const action = createSafeAction(testSchema, handler);
+    const action = createSafeAction<typeof testSchema, string>(testSchema, handler);
 
     const result = await action({ value: 'ok' });
 
