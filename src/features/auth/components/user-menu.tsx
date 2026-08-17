@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { logoutUser } from '@/features/auth/actions/auth';
-import { UserAvatar } from '@/shared/ui/user-avatar';
+import { Avatar } from '@/shared/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ export function UserMenu() {
         aria-label="Open user menu"
         className="flex items-center justify-center size-8 mx-2 mb-2 rounded-lg outline-none hover:bg-sidebar-accent focus-visible:bg-sidebar-accent"
       >
-        <UserAvatar />
+        <Avatar />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right">
         <DropdownMenuItem disabled>
