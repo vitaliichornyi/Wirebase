@@ -1,6 +1,6 @@
 # CLAUDE.md — Project Engineering Standards
 
-**Contents:** Maintenance Protocol · Ticket Interpretation · Tech Stack · Directory Structure · Routing & Access Control · Server & Client Components · RESTful API Architecture · Component Architecture · Data Layer · Error Handling & Display · Types & Zod Schemas · Code Style · Forms · Security & Environment Variables · UI Copy Guidelines
+**Contents:** Maintenance Protocol · Ticket Interpretation · Tech Stack · Directory Structure · Routing & Access Control · Server & Client Components · RESTful API Architecture · Component Architecture · Data Layer · Error Handling & Display · Types & Zod Schemas · Code Style · Forms · Testing · Security & Environment Variables · UI Copy Guidelines
 
 ---
 
@@ -437,7 +437,7 @@ These rules apply regardless of which pattern was selected above.
 - All code in a feature's `services/`, and in its `actions/` when it exists (Server Actions pattern — see Pattern Selection), runs strictly on the server.
 - Every file in a feature's `actions/` must start with the `'use server'` directive.
 - `src/shared/lib/` (e.g. `shared/lib/supabase/`, `shared/lib/utils.ts`) contains **only** low-level infra: SDK initializers (`createClient()`) and static helpers. Never put DB queries, Supabase domain requests, or domain-specific auth/business logic in `shared/lib/` — those belong in a feature's `services/` or `actions/`.
-- **One named exception:** `createSafeAction` (`src/shared/lib/create-safe-action.ts`, see Data Layer → Server Actions Pattern) calls `getUser()` internally. It's allowed in `shared/lib/` specifically because it's cross-cutting infrastructure shared by every feature's actions, not domain logic — it doesn't query any domain table itself, it only gates access to `handler` before delegating to the calling feature's `services/`. This is the sole permitted auth call in `shared/lib/`; no other `shared/lib/` file may call `getUser()`/`getSession()`.
+- **One named exception:** the reusable `getUser()` helper itself (`src/shared/lib/get-user.ts`) and `createSafeAction` (`src/shared/lib/create-safe-action.ts`, see Data Layer → Server Actions Pattern), which calls it internally. Both are allowed in `shared/lib/` specifically because they're cross-cutting infrastructure shared by every feature's actions, not domain logic — `getUser()` only wraps the auth SDK's own session check, it doesn't query any domain table, and `createSafeAction` only gates access to `handler` before delegating to the calling feature's `services/`. These two files are the sole permitted callers of the auth SDK's session/user check in `shared/lib/`; no other `shared/lib/` file may call it directly, and no feature code calls `getUser()` itself except through `createSafeAction` (see Authentication & authorization below).
 
 **Standardized response format:**
 
@@ -678,6 +678,14 @@ export type AuthInput = z.infer<typeof authSchema>;
 
 - All forms must be managed with `react-hook-form` paired with Zod validation. Manual field state via `useState` is strictly prohibited.
 - Never extract or keep `<Controller>` logic outside the input component or in parent wrappers — every custom input/select/checkbox/field component encapsulates its own `Controller` internally. Parent forms only pass `control`, `name`, and field-specific props down.
+
+---
+
+## Testing
+
+- **A `*.test.ts` is colocated with the file it tests.** It lives directly next to its subject inside the same `actions/`, `services/`, `schemas/`, or `lib/` folder (e.g. a feature's `actions/update-profile.test.ts` next to `actions/update-profile.ts`) — never in a separate mirrored test tree.
+- **Shared test infrastructure lives in `src/test-utils/`, not colocated with any single file.** Mocks, test-data factories, and custom test renderers used by multiple tests across features aren't owned by any one entity, so they belong in `src/test-utils/` — never duplicated per-feature, never placed next to just one of their several consumers.
+- **A test spanning multiple features is an end-to-end test, not a unit test, and doesn't live inside any single `features/<name>/`.** A scenario that exercises several features in sequence (e.g. sign up → create a resource → invite a teammate) goes in `src/e2e/`, kept separate from the colocated `*.test.ts` files that test one feature's own actions/services in isolation.
 
 ---
 
