@@ -1,6 +1,6 @@
 import { Logo } from '@/shared/ui/logo';
 import { Headline } from '@/shared/ui/headline';
-import { LoginForm } from './login-form';
+import { LoginForm } from '@/features/auth';
 import Link from 'next/link';
 
 export default function Home() {

@@ -5,17 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import {
-  registerUser,
-  registerSchema,
-  type RegisterFormValues,
-} from '@/features/auth';
+import { loginUser } from '@/features/auth/actions/auth';
+import { loginSchema, type LoginFormValues } from '@/features/auth/schemas/auth';
 import { TextField } from '@/shared/ui/text-field';
 import { Button } from '@/shared/ui/button';
 import { Alert } from '@/shared/ui/alert';
-import { maskEmail } from '@/shared/lib/email';
 
-export function RegisterForm() {
+export function LoginForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -23,21 +19,19 @@ export function RegisterForm() {
     control,
     handleSubmit,
     formState: { isSubmitting },
-  } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
-    const { error } = await registerUser(values);
+    const { error } = await loginUser(values);
     if (error) {
       setServerError(error);
       return;
     }
-    router.push(
-      `/register/confirm?email=${encodeURIComponent(maskEmail(values.email))}`,
-    );
+    router.push('/dashboard');
   });
 
   return (
@@ -64,11 +58,11 @@ export function RegisterForm() {
             label="Password"
             type="password"
             placeholder="••••••••"
-            autoComplete="new-password"
+            autoComplete="current-password"
           />
         </div>
         <Button type="submit" isSubmitting={isSubmitting} size="large">
-          Create account
+          Sign in
         </Button>
       </form>
     </>
