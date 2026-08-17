@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 
-import { generateSlug } from '@/shared/lib/slug';
+import { generateSlug } from '@/features/flows/lib/generate-slug';
 import { createClient } from '@/shared/lib/supabase/server';
 import type {
   AddInputNodeInput,

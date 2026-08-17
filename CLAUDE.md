@@ -95,7 +95,7 @@ Placeholders (not literal folder names) — replace with names appropriate to th
 
 ### Extended `src/` Structure — Feature-First
 
-Code is grouped **by business feature, not by technical layer.** Everything belonging to one business capability (`actions/`, `services/`, `schemas/`, `types/`, `components/`, `hooks/`) lives together, in one folder. The only exception is `shared/`, for code with zero dependency on any specific business entity.
+Code is grouped **by business feature, not by technical layer.** Everything belonging to one business capability (`actions/`, `services/`, `schemas/`, `types/`, `components/`, `hooks/`, `lib/`) lives together, in one folder. The only exception is `shared/`, for code with zero dependency on any specific business entity.
 
 ```text
 src/
@@ -114,6 +114,8 @@ src/
 │       │   └── user-form.tsx
 │       ├── hooks/                   # Hooks specific to this feature
 │       │   └── use-user.ts
+│       ├── lib/                     # Pure algorithm/helper code scoped to this feature only — no DB, no Next.js
+│       │   └── generate-slug.ts
 │       └── index.ts                 # PUBLIC API of the feature — the only entry point from outside it
 └── shared/                         # Fully domain-agnostic code only
     ├── ui/
@@ -134,6 +136,7 @@ src/
 | `features/<name>/types/` | Only types that genuinely can't be inferred from a schema (DB row shapes not covered by Zod, DTOs, service response payloads). |
 | `features/<name>/components/` | React components that know about this feature's entities — see Component Architecture. |
 | `features/<name>/hooks/` | Hooks specific to this feature. |
+| `features/<name>/lib/` | Pure algorithm/helper code tied to this feature's domain (e.g. generating a redirect slug for a node) — a feature-scoped mirror of `shared/lib/`. No DB/Supabase calls (that's `services/`) and no Next.js APIs (`cookies()`, `revalidatePath()`). If the same helper is later needed by 3+ features and is genuinely domain-agnostic, promote it to `shared/lib/` instead (see Cross-Feature Reuse → Rule of Three). |
 | `features/<name>/index.ts` | The feature's public API. Everything another feature or `app/` imports from this feature goes through here — see Cross-Feature Reuse below. |
 | `shared/ui/primitives/` | Raw shadcn/ui components — installed via CLI only, never hand-edited for feature-specific logic. |
 | `shared/ui/` (above `primitives/`) | Domain-agnostic wrappers over `primitives/` (`Avatar`, `ConfirmDialog`, `DataTable`) — know nothing about any entity — see Component Architecture. |
@@ -203,6 +206,7 @@ When something from feature A is needed inside feature B:
 | `features/<name>/services/` | kebab-case (`user-service.ts`, `links-management.ts`) | camelCase functions | `export async function loginUser() {...}` |
 | `features/<name>/actions/` | kebab-case (`update-profile.ts`, `delete-user.ts`) | camelCase functions | `export const updateProfile = createSafeAction(updateUserSchema, ...)` |
 | `features/<name>/schemas/` | kebab-case (`user-schema.ts`, `links.ts`) | camelCase, suffixed `Schema` | `export const loginSchema = z.object({...})` |
+| `features/<name>/lib/` / constants | kebab-case (`generate-slug.ts`) | UPPER_SNAKE_CASE (constants); camelCase functions | `export const SLUG_LENGTH = 8;`, `export function generateSlug() {...}` |
 | `shared/lib/` / constants | kebab-case (`auth-constants.ts`, `api-routes.ts`) | UPPER_SNAKE_CASE (constants); camelCase functions | `export const MAX_RETRY_ATTEMPTS = 3;`, `export function maskEmail() {...}` |
 | `features/<name>/hooks/`, `shared/hooks/` | kebab-case, `use-` prefix (`use-auth.ts`) | camelCase, `use` prefix | `export function useAuth() {...}` |
 

@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-import { SLUG_LENGTH } from '@/shared/lib/slug';
+import { SLUG_LENGTH } from '@/features/flows/lib/generate-slug';
 import { INPUT_NODE_STATUSES } from '@/features/flows/types/nodes';
 
-// Matches the alphanumeric alphabet generateSlug() draws from (lib/slug.ts).
+// Matches the alphanumeric alphabet generateSlug() draws from (lib/generate-slug.ts).
 // Used by the public redirect route to reject malformed slugs before
 // querying the database.
 export const redirectSlugSchema = z.string().regex(new RegExp(`^[a-zA-Z0-9]{${SLUG_LENGTH}}$`));
