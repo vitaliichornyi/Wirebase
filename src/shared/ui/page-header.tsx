@@ -1,10 +1,8 @@
-import type { ReactNode } from 'react';
-
 import { Headline } from '@/shared/ui/headline';
 
 interface PageHeaderProps {
   title: string;
-  children?: ReactNode;
+  children?: React.ReactNode;
 }
 
 export function PageHeader({ title, children }: PageHeaderProps) {

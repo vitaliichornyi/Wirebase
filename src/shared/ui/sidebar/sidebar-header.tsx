@@ -1,9 +1,9 @@
-import Link from 'next/link';
-import { IconButton } from '@/shared/ui/icon-button';
 import { Logo } from '@/shared/ui/logo';
+import { SidebarIcon } from '@/shared/ui/icons/sidebar-icon';
 import { SidebarCollapseIcon } from '@/shared/ui/icons/sidebar-collapse-icon';
 import { SidebarExpandIcon } from '@/shared/ui/icons/sidebar-expand-icon';
-import { SidebarIcon } from '@/shared/ui/icons/sidebar-icon';
+import { IconButton } from '@/shared/ui/icon-button';
+import Link from 'next/link';
 
 interface SidebarHeaderProps {
   isCollapsed: boolean;

@@ -1,8 +1,9 @@
+import { User } from 'lucide-react';
+
 import {
   Avatar as AvatarPrimitive,
   AvatarFallback,
 } from '@/shared/ui/primitives/avatar';
-import { User } from 'lucide-react';
 
 export function Avatar() {
   return (

@@ -6,8 +6,10 @@ import { cn } from '@/shared/lib/utils';
 
 type ButtonSize = 'default' | 'large';
 
-interface ButtonProps
-  extends Omit<ComponentProps<typeof ButtonPrimitive>, 'size'> {
+interface ButtonProps extends Omit<
+  ComponentProps<typeof ButtonPrimitive>,
+  'size'
+> {
   isSubmitting?: boolean;
   size?: ButtonSize;
 }
@@ -31,8 +33,8 @@ export function Button({
       className={cn(buttonSizeClasses[size], className)}
       {...props}
     >
-      {isSubmitting && <Spinner />}
       {children}
+      {isSubmitting && <Spinner />}
     </ButtonPrimitive>
   );
 }
