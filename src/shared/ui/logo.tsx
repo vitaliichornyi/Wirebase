@@ -70,26 +70,26 @@ export function Logo({ variant, className }: LogoProps) {
   ) : (
     <svg
       className={cn('size-6.5', className)}
-      width="26"
-      height="26"
-      viewBox="0 0 26 26"
+      width="28"
+      height="28"
+      viewBox="0 0 28 28"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g clipPath="url(#clip0_144_170)">
-        <rect width="26" height="26" rx="6.24" fill="#141414" />
+      <g clip-path="url(#clip0_144_170)">
+        <rect width="28" height="28" rx="6.72" fill="#141414" />
         <path
-          d="M20.4321 8.05981H22.4684L19.6937 18.543H17.6574L20.4321 8.05981Z"
+          d="M22.0037 8.67969H24.1967L21.2085 19.9693H19.0156L22.0037 8.67969Z"
           fill="white"
         />
         <path
-          d="M3.38 8.05981H5.44752L7.51504 16.0096L9.4952 8.05981H11.519L13.4846 16.0096L15.5667 8.05981H17.6342L14.6494 18.543H12.4509L10.4998 10.7389L8.5488 18.543H6.3648L3.38 8.05981Z"
+          d="M3.63989 8.67969H5.86645L8.09301 17.241L10.2255 8.67969H12.405L14.5218 17.241L16.7641 8.67969H18.9906L15.7762 19.9693H13.4085L11.3074 11.5648L9.20629 19.9693H6.85429L3.63989 8.67969Z"
           fill="white"
         />
       </g>
       <defs>
         <clipPath id="clip0_144_170">
-          <rect width="26" height="26" fill="white" />
+          <rect width="28" height="28" fill="white" />
         </clipPath>
       </defs>
     </svg>
