@@ -8,12 +8,12 @@ interface LogoProps {
 export function Logo({ variant, className }: LogoProps) {
   return variant === 'full' ? (
     <svg
+      className={className}
       width="114"
       height="26"
       viewBox="0 0 114 26"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={className}
     >
       <g clipPath="url(#clip0_197_236)">
         <path
@@ -69,14 +69,14 @@ export function Logo({ variant, className }: LogoProps) {
     </svg>
   ) : (
     <svg
-      className={cn('size-6.5', className)}
+      className={cn('size-7', className)}
       width="28"
       height="28"
       viewBox="0 0 28 28"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g clip-path="url(#clip0_144_170)">
+      <g clipPath="url(#clip0_144_170)">
         <rect width="28" height="28" rx="6.72" fill="#141414" />
         <path
           d="M22.0037 8.67969H24.1967L21.2085 19.9693H19.0156L22.0037 8.67969Z"

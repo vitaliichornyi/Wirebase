@@ -10,7 +10,7 @@ import {
   registerSchema,
   type RegisterFormValues,
 } from '@/features/auth/schemas/auth';
-import { TextField } from '@/shared/ui/text-field';
+import { FormTextField } from '@/shared/ui/form-text-field';
 import { Button } from '@/shared/ui/button';
 import { Alert } from '@/shared/ui/alert';
 import { maskEmail } from '@/features/auth/lib/mask-email';
@@ -50,7 +50,7 @@ export function RegisterForm() {
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-4">
         <div className="flex flex-col gap-3">
-          <TextField
+          <FormTextField
             control={control}
             name="email"
             label="Email"
@@ -58,7 +58,7 @@ export function RegisterForm() {
             placeholder="example@email.com"
             autoComplete="email"
           />
-          <TextField
+          <FormTextField
             control={control}
             name="password"
             label="Password"

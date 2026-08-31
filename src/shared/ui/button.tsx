@@ -21,10 +21,10 @@ const buttonSizeClasses: Record<ButtonSize, string> = {
 
 export function Button({
   children,
+  size = 'default',
   isSubmitting = false,
   disabled,
   className,
-  size = 'default',
   ...props
 }: ButtonProps) {
   return (

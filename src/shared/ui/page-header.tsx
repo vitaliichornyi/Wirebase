@@ -8,7 +8,7 @@ interface PageHeaderProps {
 export function PageHeader({ title, children }: PageHeaderProps) {
   return (
     <div className="flex items-center justify-between h-19 px-6">
-      <Headline as="h1" variant="medium">
+      <Headline as="h1" variant="headline" size="medium">
         {title}
       </Headline>
       {children}

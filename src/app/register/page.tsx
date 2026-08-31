@@ -8,7 +8,7 @@ export default function RegisterPage() {
     <main className="relative flex flex-col items-center justify-center min-h-screen p-6">
       <Logo variant="full" className="absolute top-6 left-6" />
       <div className="w-full max-w-sm mb-6">
-        <Headline as="h1" variant="large" className="pb-2">
+        <Headline as="h1" variant="headline" size="large" className="pb-2">
           Create account
         </Headline>
         <p className="body-medium text-muted-foreground">

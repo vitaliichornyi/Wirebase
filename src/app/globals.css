@@ -46,6 +46,10 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --shadow:
+    0px 0px 2px 0px rgba(0, 0, 0, 0.12), 0px 2px 4px -2px rgba(0, 0, 0, 0.08),
+    0px 6px 10px 0px rgba(0, 0, 0, 0.02);
 }
 
 :root {
@@ -62,7 +66,7 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
 
-  --muted: oklch(0.88 0 0);
+  --muted: oklch(0.9 0 0);
   --muted-foreground: oklch(0.477 0 0);
 
   --accent: oklch(0.97 0 0);
@@ -158,14 +162,14 @@
     @apply 
   } */
   /* .title-large {
-    @apply 
-  }
-  .title-medium {
-    @apply 
-  }
-  .title-small {
-    @apply 
+    @apply
   } */
+  /* .title-medium {
+    @apply text-[0.9375rem] leading-5.5 font-semibold;
+  } */
+  .title-small {
+    @apply text-[0.9375rem] leading-5.5 font-semibold;
+  }
   .body-large {
     @apply font-normal text-[0.9375rem] leading-5.5;
   }
@@ -183,5 +187,11 @@
   }
   .label-small {
     @apply font-semibold text-xs;
+  }
+}
+
+@layer utilities {
+  .canvas-background {
+    @apply shadow rounded-lg bg-background;
   }
 }
