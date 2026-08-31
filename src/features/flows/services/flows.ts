@@ -4,6 +4,8 @@ import { createClient } from '@/shared/lib/supabase/server';
 import * as nodesService from '@/features/flows/services/nodes';
 import type {
   CreateFlowInput,
+  GetFlowInput,
+  RenameFlowInput,
   UpdateFlowStatusInput,
 } from '@/features/flows/schemas/flows';
 import type { ActionResponse } from '@/shared/types/action-response';
@@ -12,7 +14,15 @@ import type {
   Flow,
   FlowListItem,
   FlowRow,
+  FlowWithGraph,
 } from '@/features/flows/types/flows';
+import type { EdgeRow } from '@/features/flows/types/edges';
+import { mapEdgeRow } from '@/features/flows/services/edges';
+import type { NodeRow } from '@/features/flows/types/nodes';
+import {
+  mapInputNodeRow,
+  mapOutputNodeRow,
+} from '@/features/flows/services/nodes';
 
 function mapFlowRow(row: FlowRow): Flow {
   return {
@@ -99,6 +109,103 @@ export async function updateFlowStatus(
     }
 
     return { data: mapFlowRow(flowRow), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
+// Renaming is one of the changes gated behind the canvas's explicit Save
+// (ADR 0010) — the client only calls this once the user clicks Save.
+export async function renameFlow(
+  input: RenameFlowInput,
+  user: User,
+): Promise<ActionResponse<Flow>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: flowRow, error: flowError } = await supabase
+      .from('flows')
+      .update({ name: input.name })
+      .eq('id', input.flowId)
+      .eq('user_id', user.id)
+      .select()
+      .maybeSingle();
+
+    if (flowError) {
+      return { data: null, error: flowError.message };
+    }
+
+    if (!flowRow) {
+      return { data: null, error: 'Flow not found' };
+    }
+
+    return { data: mapFlowRow(flowRow), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
+// Feeds the canvas editor's initial load: the Flow itself plus every
+// non-deleted Node and Edge it owns, mapped to the same domain shapes the
+// rest of this feature already uses.
+export async function getFlow(
+  input: GetFlowInput,
+  user: User,
+): Promise<ActionResponse<FlowWithGraph>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: flowRow, error: flowError } = await supabase
+      .from('flows')
+      .select('*')
+      .eq('id', input.flowId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (flowError) {
+      return { data: null, error: flowError.message };
+    }
+
+    if (!flowRow) {
+      return { data: null, error: 'Flow not found' };
+    }
+
+    const { data: nodeRows, error: nodesError } = await supabase
+      .from('nodes')
+      .select('*')
+      .eq('flow_id', input.flowId)
+      .eq('user_id', user.id)
+      .is('deleted_at', null);
+
+    if (nodesError) {
+      return { data: null, error: nodesError.message };
+    }
+
+    const { data: edgeRows, error: edgesError } = await supabase
+      .from('edges')
+      .select('*')
+      .eq('flow_id', input.flowId)
+      .eq('user_id', user.id);
+
+    if (edgesError) {
+      return { data: null, error: edgesError.message };
+    }
+
+    const nodes = ((nodeRows ?? []) as NodeRow[]).map((row) =>
+      row.type === 'input' ? mapInputNodeRow(row) : mapOutputNodeRow(row),
+    );
+    const edges = ((edgeRows ?? []) as EdgeRow[]).map(mapEdgeRow);
+
+    return {
+      data: { flow: mapFlowRow(flowRow), nodes, edges },
+      error: null,
+    };
   } catch (error) {
     return {
       data: null,

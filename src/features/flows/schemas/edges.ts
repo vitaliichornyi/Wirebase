@@ -7,3 +7,9 @@ export const connectEdgeSchema = z.object({
 });
 
 export type ConnectEdgeInput = z.infer<typeof connectEdgeSchema>;
+
+export const disconnectEdgeSchema = z.object({
+  edgeId: z.uuid(),
+});
+
+export type DisconnectEdgeInput = z.infer<typeof disconnectEdgeSchema>;

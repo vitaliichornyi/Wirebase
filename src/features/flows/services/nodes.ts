@@ -6,11 +6,23 @@ import type {
   AddInputNodeInput,
   AddOutputNodeInput,
   DeleteNodeInput,
+  RenameNodeInput,
+  RepositionNodeInput,
   UpdateInputNodeStatusInput,
   UpdateInputNodeUtmInput,
+  UpdateOutputDestinationUrlInput,
 } from '@/features/flows/schemas/nodes';
 import type { ActionResponse } from '@/shared/types/action-response';
-import type { InputNode, NodeRow, OutputNode } from '@/features/flows/types/nodes';
+import type {
+  FlowNode,
+  InputNode,
+  NodeRow,
+  OutputNode,
+} from '@/features/flows/types/nodes';
+
+function mapNodeRow(row: NodeRow): FlowNode {
+  return row.type === 'input' ? mapInputNodeRow(row) : mapOutputNodeRow(row);
+}
 
 const MAX_SLUG_ATTEMPTS = 5;
 const UNIQUE_VIOLATION = '23505';
@@ -232,6 +244,112 @@ export async function updateInputNodeUtm(
     }
 
     return { data: mapInputNodeRow(nodeRow), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
+// Renaming an Input or Output node is one of the changes gated behind the
+// canvas's explicit Save (ADR 0010) — the client only calls this once the
+// user clicks Save. The row's own `type` decides which mapper applies, so
+// one action covers both node kinds.
+export async function renameNode(
+  input: RenameNodeInput,
+  user: User,
+): Promise<ActionResponse<FlowNode>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: nodeRow, error: nodeError } = await supabase
+      .from('nodes')
+      .update({ name: input.name })
+      .eq('id', input.nodeId)
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .select()
+      .maybeSingle();
+
+    if (nodeError) {
+      return { data: null, error: nodeError.message };
+    }
+
+    if (!nodeRow) {
+      return { data: null, error: 'Node not found' };
+    }
+
+    return { data: mapNodeRow(nodeRow), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
+// Canvas position is likewise only persisted on explicit Save (ADR 0010) —
+// dragging a node around before Save never reaches this action.
+export async function repositionNode(
+  input: RepositionNodeInput,
+  user: User,
+): Promise<ActionResponse<FlowNode>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: nodeRow, error: nodeError } = await supabase
+      .from('nodes')
+      .update({ position_x: input.positionX, position_y: input.positionY })
+      .eq('id', input.nodeId)
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .select()
+      .maybeSingle();
+
+    if (nodeError) {
+      return { data: null, error: nodeError.message };
+    }
+
+    if (!nodeRow) {
+      return { data: null, error: 'Node not found' };
+    }
+
+    return { data: mapNodeRow(nodeRow), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
+export async function updateOutputDestinationUrl(
+  input: UpdateOutputDestinationUrlInput,
+  user: User,
+): Promise<ActionResponse<OutputNode>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: nodeRow, error: nodeError } = await supabase
+      .from('nodes')
+      .update({ destination_url: input.destinationUrl })
+      .eq('id', input.nodeId)
+      .eq('user_id', user.id)
+      .eq('type', 'output')
+      .is('deleted_at', null)
+      .select()
+      .maybeSingle();
+
+    if (nodeError) {
+      return { data: null, error: nodeError.message };
+    }
+
+    if (!nodeRow) {
+      return { data: null, error: 'Output node not found' };
+    }
+
+    return { data: mapOutputNodeRow(nodeRow), error: null };
   } catch (error) {
     return {
       data: null,

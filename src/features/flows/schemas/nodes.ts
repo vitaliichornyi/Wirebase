@@ -42,6 +42,30 @@ export const deleteNodeSchema = z.object({
 
 export type DeleteNodeInput = z.infer<typeof deleteNodeSchema>;
 
+export const renameNodeSchema = z.object({
+  nodeId: z.uuid(),
+  name: z.string().trim().min(1).max(120),
+});
+
+export type RenameNodeInput = z.infer<typeof renameNodeSchema>;
+
+export const repositionNodeSchema = z.object({
+  nodeId: z.uuid(),
+  positionX: z.number(),
+  positionY: z.number(),
+});
+
+export type RepositionNodeInput = z.infer<typeof repositionNodeSchema>;
+
+export const updateOutputDestinationUrlSchema = z.object({
+  nodeId: z.uuid(),
+  destinationUrl: z.url(),
+});
+
+export type UpdateOutputDestinationUrlInput = z.infer<
+  typeof updateOutputDestinationUrlSchema
+>;
+
 // Every field is required (though nullable) rather than optional: this is a
 // full-replace action, matching the canvas properties form's explicit-save
 // model (spec.md: one form submitting all UTM fields at once). An optional

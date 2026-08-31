@@ -5,8 +5,11 @@ import {
   addInputNodeSchema,
   addOutputNodeSchema,
   deleteNodeSchema,
+  renameNodeSchema,
+  repositionNodeSchema,
   updateInputNodeStatusSchema,
   updateInputNodeUtmSchema,
+  updateOutputDestinationUrlSchema,
 } from '@/features/flows/schemas/nodes';
 import * as nodesService from '@/features/flows/services/nodes';
 
@@ -31,3 +34,15 @@ export const updateInputNodeUtm = createSafeAction(
 );
 
 export const deleteNode = createSafeAction(deleteNodeSchema, nodesService.deleteNode);
+
+export const renameNode = createSafeAction(renameNodeSchema, nodesService.renameNode);
+
+export const repositionNode = createSafeAction(
+  repositionNodeSchema,
+  nodesService.repositionNode,
+);
+
+export const updateOutputDestinationUrl = createSafeAction(
+  updateOutputDestinationUrlSchema,
+  nodesService.updateOutputDestinationUrl,
+);

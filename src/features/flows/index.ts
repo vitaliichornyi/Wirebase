@@ -1,5 +1,16 @@
-export { createFlow, listFlows, updateFlowStatus } from './actions/flows';
-export { addInputNode, addOutputNode, deleteNode, updateInputNodeStatus, updateInputNodeUtm } from './actions/nodes';
+export {
+  createFlow,
+  getFlow,
+  listFlows,
+  updateFlowStatus,
+} from './actions/flows';
+export {
+  addInputNode,
+  addOutputNode,
+  deleteNode,
+  updateInputNodeStatus,
+  updateInputNodeUtm,
+} from './actions/nodes';
 export { connectEdge } from './actions/edges';
 export { recordClick, resolveRedirect } from './services/redirect-service';
 export { redirectSlugSchema } from './schemas/nodes';
@@ -10,6 +21,7 @@ export type {
   Flow,
   FlowListItem,
   FlowStatus,
+  FlowWithGraph,
 } from './types/flows';
 export type { InputNode, OutputNode } from './types/nodes';
 export type { Edge } from './types/edges';

@@ -1,4 +1,5 @@
-import type { InputNode } from './nodes';
+import type { Edge } from './edges';
+import type { FlowNode, InputNode } from './nodes';
 
 export const FLOW_STATUSES = ['active', 'inactive', 'archived'] as const;
 
@@ -29,4 +30,10 @@ export interface CreateFlowResult {
 
 export interface FlowListItem extends Flow {
   linkCount: number;
+}
+
+export interface FlowWithGraph {
+  flow: Flow;
+  nodes: FlowNode[];
+  edges: Edge[];
 }

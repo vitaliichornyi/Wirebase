@@ -1,7 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createFlow, listFlows, updateFlowStatus } from '@/features/flows/actions/flows';
+import {
+  createFlow,
+  getFlow,
+  listFlows,
+  renameFlow,
+  updateFlowStatus,
+} from '@/features/flows/actions/flows';
 import { addInputNode, addOutputNode, deleteNode } from '@/features/flows/actions/nodes';
+import { connectEdge } from '@/features/flows/actions/edges';
 import { activeClientHolder } from '@/test-utils/mock-supabase-server';
 import { createTestUser, deleteTestUser, type TestUser } from '@/test-utils/supabase';
 
@@ -164,5 +171,101 @@ describe('listFlows', () => {
 
     const listedFlow = result.data!.find((item) => item.id === flow.id);
     expect(listedFlow?.linkCount).toBe(2);
+  });
+});
+
+describe('renameFlow', () => {
+  let owner: TestUser;
+  let otherUser: TestUser;
+  let flowId: string;
+
+  beforeAll(async () => {
+    owner = await createTestUser();
+    otherUser = await createTestUser();
+
+    activeClientHolder.client = owner.client;
+    const flowResult = await createFlow({ name: 'Original name' });
+    flowId = flowResult.data!.flow.id;
+  });
+
+  afterAll(async () => {
+    await deleteTestUser(owner.id);
+    await deleteTestUser(otherUser.id);
+  });
+
+  it('renames a Flow inline from the canvas header', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await renameFlow({ flowId, name: 'Renamed flow' });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.name).toBe('Renamed flow');
+  });
+
+  it('does not let another user rename a Flow they do not own', async () => {
+    activeClientHolder.client = otherUser.client;
+
+    const result = await renameFlow({ flowId, name: 'Hijacked name' });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe('Flow not found');
+  });
+});
+
+describe('getFlow', () => {
+  let owner: TestUser;
+  let otherUser: TestUser;
+  let flowId: string;
+
+  beforeAll(async () => {
+    owner = await createTestUser();
+    otherUser = await createTestUser();
+
+    activeClientHolder.client = owner.client;
+    const flowResult = await createFlow({ name: 'Graph flow' });
+    flowId = flowResult.data!.flow.id;
+
+    const output = (
+      await addOutputNode({
+        flowId,
+        name: 'Destination',
+        destinationUrl: 'https://example.com',
+      })
+    ).data!;
+    await connectEdge({
+      flowId,
+      fromNodeId: flowResult.data!.inputNode.id,
+      toNodeId: output.id,
+    });
+
+    const deletableInput = (
+      await addInputNode({ flowId, name: 'Deletable link' })
+    ).data!;
+    await deleteNode({ nodeId: deletableInput.id });
+  });
+
+  afterAll(async () => {
+    await deleteTestUser(owner.id);
+    await deleteTestUser(otherUser.id);
+  });
+
+  it('returns the Flow with its non-deleted nodes and edges for the canvas to render', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await getFlow({ flowId });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.flow.id).toBe(flowId);
+    expect(result.data?.nodes).toHaveLength(2);
+    expect(result.data?.edges).toHaveLength(1);
+  });
+
+  it('does not let another user fetch a Flow they do not own', async () => {
+    activeClientHolder.client = otherUser.client;
+
+    const result = await getFlow({ flowId });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe('Flow not found');
   });
 });

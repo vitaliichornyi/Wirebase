@@ -14,3 +14,16 @@ export const updateFlowStatusSchema = z.object({
 });
 
 export type UpdateFlowStatusInput = z.infer<typeof updateFlowStatusSchema>;
+
+export const renameFlowSchema = z.object({
+  flowId: z.uuid(),
+  name: z.string().trim().min(1).max(120),
+});
+
+export type RenameFlowInput = z.infer<typeof renameFlowSchema>;
+
+export const getFlowSchema = z.object({
+  flowId: z.uuid(),
+});
+
+export type GetFlowInput = z.infer<typeof getFlowSchema>;

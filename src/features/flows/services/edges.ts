@@ -1,13 +1,16 @@
 import type { User } from '@supabase/supabase-js';
 
 import { createClient } from '@/shared/lib/supabase/server';
-import type { ConnectEdgeInput } from '@/features/flows/schemas/edges';
+import type {
+  ConnectEdgeInput,
+  DisconnectEdgeInput,
+} from '@/features/flows/schemas/edges';
 import type { ActionResponse } from '@/shared/types/action-response';
 import type { Edge, EdgeRow } from '@/features/flows/types/edges';
 
 const UNIQUE_VIOLATION = '23505';
 
-function mapEdgeRow(row: EdgeRow): Edge {
+export function mapEdgeRow(row: EdgeRow): Edge {
   return {
     id: row.id,
     flowId: row.flow_id,
@@ -77,6 +80,37 @@ export async function connectEdge(
   } catch (error) {
     return {
       data: null,
+      error: error instanceof Error ? error.message : 'Unknown server error',
+    };
+  }
+}
+
+export async function disconnectEdge(
+  input: DisconnectEdgeInput,
+  user: User,
+): Promise<ActionResponse> {
+  try {
+    const supabase = await createClient();
+
+    const { data: edgeRow, error: edgeError } = await supabase
+      .from('edges')
+      .delete()
+      .eq('id', input.edgeId)
+      .eq('user_id', user.id)
+      .select('id')
+      .maybeSingle();
+
+    if (edgeError) {
+      return { error: edgeError.message };
+    }
+
+    if (!edgeRow) {
+      return { error: 'Edge not found' };
+    }
+
+    return { error: null };
+  } catch (error) {
+    return {
       error: error instanceof Error ? error.message : 'Unknown server error',
     };
   }

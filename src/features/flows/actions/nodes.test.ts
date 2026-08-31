@@ -6,8 +6,11 @@ import {
   addInputNode,
   addOutputNode,
   deleteNode,
+  renameNode,
+  repositionNode,
   updateInputNodeStatus,
   updateInputNodeUtm,
+  updateOutputDestinationUrl,
 } from '@/features/flows/actions/nodes';
 import { updateInputNodeUtmSchema } from '@/features/flows/schemas/nodes';
 import { activeClientHolder } from '@/test-utils/mock-supabase-server';
@@ -318,5 +321,162 @@ describe('deleteNode', () => {
     const result = await deleteNode({ nodeId });
 
     expect(result.error).toBe('Node not found');
+  });
+});
+
+describe('renameNode', () => {
+  let owner: TestUser;
+  let otherUser: TestUser;
+  let flowId: string;
+  let inputNodeId: string;
+
+  beforeAll(async () => {
+    owner = await createTestUser();
+    otherUser = await createTestUser();
+
+    activeClientHolder.client = owner.client;
+    const flowResult = await createFlow({ name: 'Rename node flow' });
+    flowId = flowResult.data!.flow.id;
+    inputNodeId = flowResult.data!.inputNode.id;
+  });
+
+  afterAll(async () => {
+    await deleteTestUser(owner.id);
+    await deleteTestUser(otherUser.id);
+  });
+
+  it('renames an Input node', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await renameNode({ nodeId: inputNodeId, name: 'Campaign link' });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.name).toBe('Campaign link');
+  });
+
+  it('renames an Output node', async () => {
+    activeClientHolder.client = owner.client;
+
+    const output = (
+      await addOutputNode({ flowId, name: 'Old name', destinationUrl: 'https://example.com' })
+    ).data!;
+
+    const result = await renameNode({ nodeId: output.id, name: 'Landing page' });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.name).toBe('Landing page');
+    expect(result.data?.type).toBe('output');
+  });
+
+  it('does not let another user rename a node they do not own', async () => {
+    activeClientHolder.client = otherUser.client;
+
+    const result = await renameNode({ nodeId: inputNodeId, name: 'Hijacked' });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe('Node not found');
+  });
+});
+
+describe('repositionNode', () => {
+  let owner: TestUser;
+  let otherUser: TestUser;
+  let inputNodeId: string;
+
+  beforeAll(async () => {
+    owner = await createTestUser();
+    otherUser = await createTestUser();
+
+    activeClientHolder.client = owner.client;
+    const flowResult = await createFlow({ name: 'Reposition flow' });
+    inputNodeId = flowResult.data!.inputNode.id;
+  });
+
+  afterAll(async () => {
+    await deleteTestUser(owner.id);
+    await deleteTestUser(otherUser.id);
+  });
+
+  it('persists a node\'s canvas position', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await repositionNode({ nodeId: inputNodeId, positionX: 240, positionY: 96 });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.positionX).toBe(240);
+    expect(result.data?.positionY).toBe(96);
+  });
+
+  it('does not let another user reposition a node they do not own', async () => {
+    activeClientHolder.client = otherUser.client;
+
+    const result = await repositionNode({ nodeId: inputNodeId, positionX: 0, positionY: 0 });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe('Node not found');
+  });
+});
+
+describe('updateOutputDestinationUrl', () => {
+  let owner: TestUser;
+  let otherUser: TestUser;
+  let flowId: string;
+  let outputNodeId: string;
+  let inputNodeId: string;
+
+  beforeAll(async () => {
+    owner = await createTestUser();
+    otherUser = await createTestUser();
+
+    activeClientHolder.client = owner.client;
+    const flowResult = await createFlow({ name: 'Destination flow' });
+    flowId = flowResult.data!.flow.id;
+    inputNodeId = flowResult.data!.inputNode.id;
+
+    const output = (
+      await addOutputNode({ flowId, name: 'Destination', destinationUrl: 'https://example.com' })
+    ).data!;
+    outputNodeId = output.id;
+  });
+
+  afterAll(async () => {
+    await deleteTestUser(owner.id);
+    await deleteTestUser(otherUser.id);
+  });
+
+  it('updates the destination URL on an Output node', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await updateOutputDestinationUrl({
+      nodeId: outputNodeId,
+      destinationUrl: 'https://example.com/new-landing',
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.data?.destinationUrl).toBe('https://example.com/new-landing');
+  });
+
+  it('rejects targeting an Input node', async () => {
+    activeClientHolder.client = owner.client;
+
+    const result = await updateOutputDestinationUrl({
+      nodeId: inputNodeId,
+      destinationUrl: 'https://example.com/nope',
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe('Output node not found');
+  });
+
+  it('does not let another user update a destination they do not own', async () => {
+    activeClientHolder.client = otherUser.client;
+
+    const result = await updateOutputDestinationUrl({
+      nodeId: outputNodeId,
+      destinationUrl: 'https://example.com/not-mine',
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe('Output node not found');
   });
 });
