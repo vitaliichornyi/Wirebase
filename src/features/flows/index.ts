@@ -16,6 +16,7 @@ export { recordClick, resolveRedirect } from './services/redirect-service';
 export { redirectSlugSchema } from './schemas/nodes';
 export { generateSlug } from './lib/generate-slug';
 export { FlowsTable } from './components/flows-table';
+export { FlowCanvas } from './components/canvas/flow-canvas';
 export type {
   CreateFlowResult,
   Flow,
