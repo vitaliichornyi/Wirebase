@@ -677,7 +677,7 @@ export type AuthInput = z.infer<typeof authSchema>;
 ## Forms (React Hook Form + Zod)
 
 - All forms must be managed with `react-hook-form` paired with Zod validation. Manual field state via `useState` is strictly prohibited.
-- Never extract or keep `<Controller>` logic outside the input component or in parent wrappers — every custom input/select/checkbox/field component encapsulates its own `Controller` internally. Parent forms only pass `control`, `name`, and field-specific props down.
+- Never write `<Controller>` inline inside a page/form file, ad hoc around a raw input — it must always live inside a dedicated, reusable component. That component doesn't have to be the same one that renders the input's markup: a `Controller`-owning wrapper (e.g. `text-field.tsx`) may delegate rendering to a separate presentational input component, so the same presentational piece can also be reused standalone with plain `value`/`onChange` outside any `react-hook-form` form. Parent forms only pass `control`, `name`, and field-specific props down to whichever component owns the `Controller`.
 
 ---
 
