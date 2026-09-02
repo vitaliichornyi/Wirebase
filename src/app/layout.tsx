@@ -3,6 +3,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
+import { ToasterProvider } from '@/shared/providers/toaster-provider';
 import { TooltipProvider } from '@/shared/providers/tooltip-provider';
 
 const inter = Inter({
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>
+        <ToasterProvider />
       </body>
     </html>
   );

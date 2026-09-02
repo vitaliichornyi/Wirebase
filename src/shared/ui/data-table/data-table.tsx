@@ -11,8 +11,6 @@ export interface DataTableColumn<TRow> {
   key: string;
   header: React.ReactNode;
   render: (row: TRow) => React.ReactNode;
-  headerClassName?: string;
-  cellClassName?: string;
 }
 
 interface DataTableProps<TRow> {
@@ -33,16 +31,17 @@ export function DataTable<TRow>({
       <TableHeader>
         <TableRow>
           {columns.map((column) => (
-            <TableHead key={column.key} className={column.headerClassName}>
-              {column.header}
-            </TableHead>
+            <TableHead key={column.key}>{column.header}</TableHead>
           ))}
         </TableRow>
       </TableHeader>
       <TableBody>
         {data.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
+            <TableCell
+              colSpan={columns.length}
+              className="text-center text-muted-foreground"
+            >
               {emptyMessage}
             </TableCell>
           </TableRow>
@@ -50,9 +49,7 @@ export function DataTable<TRow>({
           data.map((row) => (
             <TableRow key={getRowKey(row)}>
               {columns.map((column) => (
-                <TableCell key={column.key} className={column.cellClassName}>
-                  {column.render(row)}
-                </TableCell>
+                <TableCell key={column.key}>{column.render(row)}</TableCell>
               ))}
             </TableRow>
           ))

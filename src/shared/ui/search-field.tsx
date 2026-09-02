@@ -1,12 +1,12 @@
 'use client';
 
-import { Search } from 'lucide-react';
-
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from '@/shared/ui/primitives/input-group';
+
+import { SearchIcon } from './icons/search-icon';
 
 interface SearchFieldProps {
   value: string;
@@ -22,9 +22,9 @@ export function SearchField({
   'aria-label': ariaLabel,
 }: SearchFieldProps) {
   return (
-    <InputGroup>
+    <InputGroup className="h-8 w-56 border-transparent bg-input-background has-[[data-slot=input-group-control]:focus-visible]:bg-background dark:bg-input-background/30">
       <InputGroupAddon align="inline-start">
-        <Search />
+        <SearchIcon />
       </InputGroupAddon>
       <InputGroupInput
         value={value}
