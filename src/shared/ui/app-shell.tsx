@@ -9,7 +9,7 @@ export function AppShell({ children, sidebarFooter }: AppShellProps) {
   return (
     <div className="flex min-h-screen">
       <Sidebar footer={sidebarFooter} />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 h-screen overflow-x-scroll">{children}</main>
     </div>
   );
 }

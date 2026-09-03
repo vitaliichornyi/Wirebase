@@ -19,7 +19,7 @@ export function DataTableToolbar({
   onViewChange,
 }: DataTableToolbarProps) {
   return (
-    <div className="flex items-center h-14 w-full gap-2">
+    <div className="flex flex-wrap items-center h-14 w-full gap-2">
       <SearchField
         value={search}
         onChange={onSearchChange}

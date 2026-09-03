@@ -59,7 +59,7 @@ export function FlowsTable({ initialFlows }: FlowsTableProps) {
 
   const handleCreateFlow = () => {
     startCreating(async () => {
-      const { data, error } = await createFlow();
+      const { data, error } = await createFlow({});
       if (error || !data) {
         toast({
           title: 'Failed to create flow',
