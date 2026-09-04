@@ -8,7 +8,7 @@ import { createFlow, updateFlowStatus } from '@/features/flows/actions/flows';
 import { formatDate } from '@/shared/lib/utils';
 
 import { PageHeader } from '@/shared/ui/page-header';
-import { EmptyState } from '@/shared/ui/empty-state';
+import { Empty } from '@/shared/ui/empty';
 import {
   DataTableToolbar,
   type ListView,
@@ -199,7 +199,7 @@ export function FlowsTable({ initialFlows }: FlowsTableProps) {
 
   if (flows.length === 0) {
     return (
-      <EmptyState
+      <Empty
         type="no-data"
         title="No flows yet"
         description="Create your first flow to start routing traffic through a shareable link."
@@ -217,7 +217,7 @@ export function FlowsTable({ initialFlows }: FlowsTableProps) {
           New flow
         </Button>
       </PageHeader>
-      <div className="px-6">
+      <div className="flex flex-col gap-4 px-6 pb-6">
         <DataTableToolbar
           search={search}
           onSearchChange={setSearch}

@@ -6,7 +6,7 @@ import {
   InputGroupInput,
 } from '@/shared/ui/primitives/input-group';
 
-import { SearchIcon } from './icons/search-icon';
+import { SearchIcon } from '../icons/search-icon';
 
 interface SearchFieldProps {
   value: string;

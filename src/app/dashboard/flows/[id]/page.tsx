@@ -1,5 +1,5 @@
 import { FlowCanvas, getFlow } from '@/features/flows';
-import { EmptyState } from '@/shared/ui/empty-state';
+import { Empty } from '@/shared/ui/empty';
 
 export default async function FlowCanvasPage({
   params,
@@ -10,7 +10,7 @@ export default async function FlowCanvasPage({
   const { data, error } = await getFlow({ flowId: id });
 
   if (error || !data) {
-    return <EmptyState type="error" />;
+    return <Empty type="error" />;
   }
 
   return <FlowCanvas initial={data} />;

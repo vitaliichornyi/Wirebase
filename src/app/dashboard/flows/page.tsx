@@ -1,11 +1,11 @@
 import { FlowsTable, listFlows } from '@/features/flows';
-import { EmptyState } from '@/shared/ui/empty-state';
+import { Empty } from '@/shared/ui/empty';
 
 export default async function FlowsPage() {
   const { data, error } = await listFlows();
 
   if (error || !data) {
-    return <EmptyState type="error" />;
+    return <Empty type="error" />;
   }
 
   return <FlowsTable initialFlows={data} />;

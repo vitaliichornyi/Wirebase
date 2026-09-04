@@ -39,18 +39,12 @@ const chartConfig = {
 
 const CATEGORY_LABEL_MAX_LENGTH = 16;
 
-// Recharts doesn't ellipsize overflowing tick text on its own — a long
-// category (a full referrer hostname, a long link/campaign name) would
-// otherwise silently draw off the left edge of the card. The full value
-// still reaches the reader via the tooltip on hover.
 function truncateCategoryLabel(label: string): string {
   return label.length > CATEGORY_LABEL_MAX_LENGTH
     ? `${label.slice(0, CATEGORY_LABEL_MAX_LENGTH - 1)}…`
     : label;
 }
 
-// Recharts clones this with real x/y/payload props at render time — all
-// optional here so `<CategoryTick />` is valid where the prop is declared.
 function CategoryTick({
   x = 0,
   y = 0,
@@ -74,9 +68,6 @@ function CategoryTick({
   );
 }
 
-// A single-series ranked breakdown: one flat bar color (this app has no
-// accent hue to spare — see globals.css), sorted by the caller, longest bar
-// first. Not a multi-series comparison, so no categorical palette is needed.
 export function RankedBarChart({
   title,
   data,
@@ -85,17 +76,17 @@ export function RankedBarChart({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="title-small">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+          <div className="flex h-50 items-center justify-center text-sm text-muted-foreground">
             {emptyMessage}
           </div>
         ) : (
           <ChartContainer
             config={chartConfig}
-            className="aspect-auto h-[200px] w-full"
+            className="aspect-auto h-50 w-full"
           >
             <BarChart
               data={data}

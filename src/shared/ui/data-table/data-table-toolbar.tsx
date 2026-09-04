@@ -1,7 +1,7 @@
 'use client';
 
-import { SearchField } from '@/shared/ui/search-field';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/primitives/tabs';
+import { SearchField } from '@/shared/ui/fields/search-field';
+import { SelectField, SelectFieldOption } from '../fields/select-field';
 
 export type ListView = 'active' | 'archived';
 
@@ -18,8 +18,19 @@ export function DataTableToolbar({
   view,
   onViewChange,
 }: DataTableToolbarProps) {
+  const viewOptions: SelectFieldOption[] = [
+    {
+      value: 'active',
+      label: 'Active',
+    },
+    {
+      value: 'archived',
+      label: 'Archived',
+    },
+  ];
+
   return (
-    <div className="flex flex-wrap items-center h-14 w-full gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <SearchField
         value={search}
         onChange={onSearchChange}
@@ -27,19 +38,12 @@ export function DataTableToolbar({
         aria-label="Search by name"
       />
 
-      <Tabs
+      <SelectField
+        options={viewOptions}
         value={view}
         onValueChange={(value) => onViewChange(value as ListView)}
-      >
-        <TabsList className="label-medium rounded-full bg-muted">
-          <TabsTrigger value="active" className="rounded-full">
-            Active
-          </TabsTrigger>
-          <TabsTrigger value="archived" className="rounded-full">
-            Archived
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+        aria-label="Table view"
+      />
     </div>
   );
 }

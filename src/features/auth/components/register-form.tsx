@@ -10,7 +10,7 @@ import {
   registerSchema,
   type RegisterFormValues,
 } from '@/features/auth/schemas/auth';
-import { FormTextField } from '@/shared/ui/form-text-field';
+import { FormTextField } from '@/shared/ui/fields/form-text-field';
 import { Button } from '@/shared/ui/button';
 import { Alert } from '@/shared/ui/alert';
 import { maskEmail } from '@/features/auth/lib/mask-email';

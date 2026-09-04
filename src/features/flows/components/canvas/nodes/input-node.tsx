@@ -5,7 +5,7 @@ import type { CanvasNode } from '@/features/flows/hooks/use-flow-canvas';
 import { useCanvas } from '@/features/flows/providers/canvas-context-provider';
 
 import { InputIcon } from '@/shared/ui/icons/input-icon';
-import { TextField } from '@/shared/ui/text-field';
+import { TextField } from '@/shared/ui/fields/text-field';
 import { cn } from '@/shared/lib/utils';
 
 export function InputNode({ id, data, selected }: NodeProps<CanvasNode>) {

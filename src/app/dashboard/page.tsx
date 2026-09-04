@@ -4,7 +4,7 @@ import {
   DashboardView,
 } from '@/features/dashboard';
 
-import { EmptyState } from '@/shared/ui/empty-state';
+import { Empty } from '@/shared/ui/empty';
 
 export default async function DashboardPage({
   searchParams,
@@ -25,7 +25,7 @@ export default async function DashboardPage({
     statsResult.error ||
     !statsResult.data
   ) {
-    return <EmptyState type="error" />;
+    return <Empty type="error" />;
   }
 
   return (

@@ -8,7 +8,10 @@ import {
   type ClickFilterOptions,
   type TimeRange,
 } from '@/features/dashboard/types/click-stats';
-import { SelectField, type SelectFieldOption } from '@/shared/ui/select';
+import {
+  SelectField,
+  type SelectFieldOption,
+} from '@/shared/ui/fields/select-field';
 
 import { TIME_RANGES } from '@/features/dashboard/types/click-stats';
 
@@ -71,7 +74,7 @@ export function DashboardToolbar({
   ];
 
   return (
-    <div className="flex flex-wrap items-center h-14 w-full gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <SelectField
         options={timeRangeOptions}
         value={values.timeRange}

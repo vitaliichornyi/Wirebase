@@ -10,7 +10,7 @@ export function StatTile({ label, value }: StatTileProps) {
     <Card>
       <CardContent className="flex flex-col gap-2">
         <span className="body-medium text-muted-foreground">{label}</span>
-        <span className="text-3xl font-semibold">{value}</span>
+        <span className="display-small">{value}</span>
       </CardContent>
     </Card>
   );

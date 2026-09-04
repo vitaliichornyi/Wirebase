@@ -1,5 +1,13 @@
-import { Headline } from './headline';
+import {
+  Empty as EmptyPrimitive,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from './primitives/empty';
 import { Button } from './button';
+import { FolderIcon } from './icons/folder-icon';
 
 type EmptyStateType = 'no-data' | 'no-results' | 'error';
 
@@ -28,7 +36,7 @@ const EMPTY_STATE_MESSAGES: Record<
   }),
 };
 
-interface EmptyStateProps {
+interface EmptyProps {
   type: EmptyStateType;
   entity?: string;
   title?: string;
@@ -38,7 +46,7 @@ interface EmptyStateProps {
   isActionSubmitting?: boolean;
 }
 
-export function EmptyState({
+export function Empty({
   type,
   entity = 'item',
   title,
@@ -46,31 +54,34 @@ export function EmptyState({
   actionLabel,
   onAction,
   isActionSubmitting,
-}: EmptyStateProps) {
+}: EmptyProps) {
   const content = EMPTY_STATE_MESSAGES[type](entity);
   const resolvedTitle = title ?? content.title;
   const resolvedDescription = description ?? content.description;
   const resolvedActionLabel = actionLabel ?? content.actionLabel;
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 h-full w-full py-24 px-12 text-center">
-      <div className="flex flex-col gap-2">
-        <Headline as="h1" variant="headline" size="medium">
-          {resolvedTitle}
-        </Headline>
-        <p className="body-large text-muted-foreground">
+    <EmptyPrimitive className="h-full">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <FolderIcon />
+        </EmptyMedia>
+        <EmptyTitle className="label-large">{resolvedTitle}</EmptyTitle>
+        <EmptyDescription className="body-medium">
           {resolvedDescription}
-        </p>
-      </div>
+        </EmptyDescription>
+      </EmptyHeader>
       {resolvedActionLabel && onAction && (
-        <Button
-          variant="outline"
-          onClick={onAction}
-          isSubmitting={isActionSubmitting}
-        >
-          {resolvedActionLabel}
-        </Button>
+        <EmptyContent>
+          <Button
+            variant="outline"
+            onClick={onAction}
+            isSubmitting={isActionSubmitting}
+          >
+            {resolvedActionLabel}
+          </Button>
+        </EmptyContent>
       )}
-    </div>
+    </EmptyPrimitive>
   );
 }

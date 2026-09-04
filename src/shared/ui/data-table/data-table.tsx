@@ -40,7 +40,7 @@ export function DataTable<TRow>({
           <TableRow>
             <TableCell
               colSpan={columns.length}
-              className="text-center text-muted-foreground"
+              className="h-24 text-center text-muted-foreground"
             >
               {emptyMessage}
             </TableCell>

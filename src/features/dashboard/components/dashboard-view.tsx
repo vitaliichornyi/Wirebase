@@ -10,8 +10,8 @@ import type {
 
 import { PageHeader } from '@/shared/ui/page-header';
 import { DashboardToolbar } from '@/features/dashboard/components/dashboard-toolbar';
-import { StatTile } from '@/shared/ui/stat-tile';
-import { RankedBarChart } from '@/shared/ui/bar-chart';
+import { StatTile } from '@/shared/ui/charts/stat-tile';
+import { RankedBarChart } from '@/shared/ui/charts/bar-chart';
 import { toast } from '@/shared/ui/toast';
 import { cn } from '@/shared/lib/utils';
 
@@ -50,7 +50,7 @@ export function DashboardView({
   return (
     <>
       <PageHeader title="Dashboard" />
-      <div className="flex flex-col gap-1 px-6 pb-6">
+      <div className="flex flex-col gap-4 px-6 pb-6">
         <DashboardToolbar
           options={filterOptions}
           values={filterValues}

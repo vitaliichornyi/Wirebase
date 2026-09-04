@@ -8,7 +8,7 @@ import {
   type FieldValues,
 } from 'react-hook-form';
 
-import { TextField } from '@/shared/ui/text-field';
+import { TextField } from '@/shared/ui/fields/text-field';
 
 interface FormTextFieldProps<TFieldValues extends FieldValues> {
   control: Control<TFieldValues>;

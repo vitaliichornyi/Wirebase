@@ -13,8 +13,8 @@ import { Button } from '@/shared/ui/button';
 import { InputIcon } from '@/shared/ui/icons/input-icon';
 import { OutputIcon } from '@/shared/ui/icons/output-icon';
 import { TrashBinIcon } from '@/shared/ui/icons/trash-bin-icon';
-import { TextField } from '@/shared/ui/text-field';
-import { SwitchField } from '@/shared/ui/switch-field';
+import { TextField } from '@/shared/ui/fields/text-field';
+import { SwitchField } from '@/shared/ui/fields/switch-field';
 import { Divider } from '@/shared/ui/divider';
 
 const UTM_FIELDS = [
