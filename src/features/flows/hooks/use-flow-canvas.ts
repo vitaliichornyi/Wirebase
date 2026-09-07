@@ -246,6 +246,7 @@ export function useFlowCanvas(initial: FlowWithGraph) {
 
       const realNodeIdByTempId = new Map<string, string>();
       const justCreatedNodeIds = new Set<string>();
+      const createdNodeById = new Map<string, FlowNode>();
 
       for (const canvasNode of nodes) {
         if (!canvasNode.data.isNew) continue;
@@ -273,6 +274,7 @@ export function useFlowCanvas(initial: FlowWithGraph) {
 
         realNodeIdByTempId.set(canvasNode.id, data.id);
         justCreatedNodeIds.add(data.id);
+        createdNodeById.set(data.id, data);
       }
 
       for (const nodeId of deletedNodeIds) {
@@ -394,11 +396,18 @@ export function useFlowCanvas(initial: FlowWithGraph) {
 
       const resolvedNodes: CanvasNode[] = nodes.map((canvasNode) => {
         const realId = realNodeIdByTempId.get(canvasNode.id) ?? canvasNode.id;
+        const createdNode = createdNodeById.get(realId);
+        const node = canvasNode.data.node;
+        const mergedNode: FlowNode =
+          createdNode?.type === 'input' && node.type === 'input'
+            ? { ...node, id: realId, slug: createdNode.slug }
+            : ({ ...node, id: realId } as FlowNode);
+
         return {
           ...canvasNode,
           id: realId,
           data: {
-            node: { ...canvasNode.data.node, id: realId } as FlowNode,
+            node: mergedNode,
             isNew: false,
           },
         };
