@@ -124,7 +124,7 @@ The central module of the application, responsible for creating, configuring, an
 **Screens & components:**
 
 - **Flows table view:**
-  - **Status management:** switching between active and archived flows, plus quickly toggling `Active` / `Disabled` states. When a flow is set to `Disabled`, redirects through its generated link stop working (the user lands on a 404/rejection page).
+  - **Status management:** switching between active and archived flows, plus quickly toggling `Active` / `Inactive` states. When a flow is set to `Inactive`, redirects through its generated link stop working (the user lands on a 404/rejection page).
   - **Filtering & search:** search by flow name or parameters.
   - **Actions:** quickly creating a new flow, editing an existing one, archiving, and jumping to its personal analytics dashboard.
 - **Canvas flow view:**
