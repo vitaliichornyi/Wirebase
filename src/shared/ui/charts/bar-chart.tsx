@@ -15,22 +15,23 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/shared/ui/primitives/chart';
+
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/shared/ui/primitives/card';
+import { Empty } from '../empty';
 
-export interface BarChartDatum {
+interface BarChartData {
   label: string;
   value: number;
 }
 
 interface RankedBarChartProps {
   title: string;
-  data: BarChartDatum[];
-  emptyMessage?: string;
+  data: BarChartData[];
 }
 
 const chartConfig = {
@@ -68,32 +69,30 @@ function CategoryTick({
   );
 }
 
-export function RankedBarChart({
-  title,
-  data,
-  emptyMessage = 'No data yet',
-}: RankedBarChartProps) {
+export function RankedBarChart({ title, data }: RankedBarChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="title-small">{title}</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className="flex h-50 items-center justify-center text-sm text-muted-foreground">
-            {emptyMessage}
+          <div className="flex items-center justify-center h-50">
+            <Empty
+              type="no-data"
+              title="No results found"
+              description="Try adjusting your filters."
+            />
           </div>
         ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-50 w-full"
-          >
+          <ChartContainer config={chartConfig} className="h-50 w-full">
             <BarChart
               data={data}
               layout="vertical"
               margin={{ top: 0, right: 32, bottom: 0, left: 0 }}
             >
               <CartesianGrid horizontal={false} stroke="var(--color-border)" />
+
               <XAxis type="number" hide />
               <YAxis
                 type="category"
