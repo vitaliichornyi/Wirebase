@@ -65,7 +65,7 @@ export function LoginForm() {
           />
         </div>
         <Button type="submit" isSubmitting={isSubmitting} size="large">
-          Sign in
+          Login
         </Button>
       </form>
     </>
