@@ -5,7 +5,7 @@ A SaaS platform for traffic tracking, analytics, and flexible traffic distributi
 <img width="1280" height="670" alt="ezgif-11d19605f12c0447" src="https://github.com/user-attachments/assets/a5116402-d60c-4e9f-bbdd-0272ab2ba9d4" />
 
 
-**Live Demo:** [Demo link](#https://wirebase-one.vercel.app/c/P3VCveeg)
+**Live Demo:** [Demo link](https://wirebase-one.vercel.app/c/P3VCveeg)
 
 The core goal of Wirebase is to rethink traditional link-tracking and URL-shortening systems. Instead of standard tables and static UTM-tag settings, the project offers a visual node system that lets you build flexible custom scenarios (flows) to manage and deeply analyze traffic.
 
