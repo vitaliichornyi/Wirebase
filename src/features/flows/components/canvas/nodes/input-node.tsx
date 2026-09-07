@@ -9,13 +9,13 @@ import { TextField } from '@/shared/ui/fields/text-field';
 import { cn } from '@/shared/lib/utils';
 
 export function InputNode({ id, data, selected }: NodeProps<CanvasNode>) {
-  const { onSelectNode } = useCanvas();
+  const { onSelectNode, host } = useCanvas();
   const { node } = data;
 
   if (node.type !== 'input') return null;
 
   const isDisabled = node.status === 'disabled';
-  const link = `localhost:3000/c/${node.slug || '…'}`;
+  const link = `${host}/c/${node.slug || '…'}`;
 
   return (
     <div

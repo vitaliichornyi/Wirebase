@@ -1,3 +1,5 @@
+import { headers } from 'next/headers';
+
 import { FlowCanvas, getFlow } from '@/features/flows';
 import { Empty } from '@/shared/ui/empty';
 
@@ -7,11 +9,14 @@ export default async function FlowCanvasPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { data, error } = await getFlow({ flowId: id });
+  const [{ data, error }, requestHeaders] = await Promise.all([
+    getFlow({ flowId: id }),
+    headers(),
+  ]);
 
   if (error || !data) {
     return <Empty type="error" />;
   }
 
-  return <FlowCanvas initial={data} />;
+  return <FlowCanvas initial={data} host={requestHeaders.get('host') || ''} />;
 }

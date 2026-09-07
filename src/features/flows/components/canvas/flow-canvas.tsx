@@ -26,9 +26,10 @@ const VALIDATION_ERROR_MESSAGE = 'Add a destination URL before saving.';
 
 interface FlowCanvasProps {
   initial: FlowWithGraph;
+  host: string;
 }
 
-export function FlowCanvas({ initial }: FlowCanvasProps) {
+export function FlowCanvas({ initial, host }: FlowCanvasProps) {
   const {
     nodes,
     edges,
@@ -68,6 +69,7 @@ export function FlowCanvas({ initial }: FlowCanvasProps) {
 
   const contextValue = useMemo(
     () => ({
+      host,
       flowName,
       handleFlowRename,
       isLocked,
@@ -78,6 +80,7 @@ export function FlowCanvas({ initial }: FlowCanvasProps) {
       onSelectNode: setSelectedNodeId,
     }),
     [
+      host,
       flowName,
       handleFlowRename,
       isLocked,

@@ -51,7 +51,7 @@ export function Sidebar({
   onUpdate,
   onDelete,
 }: SidebarProps) {
-  const { isLocked } = useCanvas();
+  const { host, isLocked } = useCanvas();
 
   if (!selectedNode) {
     return (
@@ -123,7 +123,7 @@ export function Sidebar({
               label="Link"
               prefix="https://"
               value={
-                node.slug ? `wirebase/${node.slug}` : 'Generated after save'
+                node.slug ? `${host}/c/${node.slug}` : 'Generated after save'
               }
               readOnly
               aria-label="Input link"

@@ -3,6 +3,7 @@
 import { createContext, useContext } from 'react';
 
 interface ContextValue {
+  host: string;
   flowName: string;
   handleFlowRename: (name: string) => void;
   isLocked: boolean;
