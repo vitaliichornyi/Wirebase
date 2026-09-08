@@ -102,71 +102,58 @@ describe('GET /c/[slug]', () => {
     expect(location.searchParams.get('utm_source')).toBe('newsletter');
   });
 
-  it('shows a not-set-up page when the Input has no connected Output', async () => {
+  it('shows the 404 page when the Input has no connected Output', async () => {
     const input = await createInputNodeRow(user.id, flow.id);
 
-    const response = await GET(buildRequest(input.slug), {
-      params: Promise.resolve({ slug: input.slug }),
-    });
-
-    expect(response.status).toBe(200);
-    expect(await response.text()).toContain("isn't set up");
+    await expect(
+      GET(buildRequest(input.slug), { params: Promise.resolve({ slug: input.slug }) }),
+    ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
   });
 
-  it('shows a not-set-up page for an unknown slug', async () => {
-    const response = await GET(buildRequest('does-not-exist'), {
-      params: Promise.resolve({ slug: 'does-not-exist' }),
-    });
-
-    expect(response.status).toBe(200);
-    expect(await response.text()).toContain("isn't set up");
+  it('shows the 404 page for an unknown slug', async () => {
+    await expect(
+      GET(buildRequest('does-not-exist'), { params: Promise.resolve({ slug: 'does-not-exist' }) }),
+    ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
   });
 
-  it('shows a not-set-up page for a malformed slug, without ever querying the database', async () => {
-    const response = await GET(buildRequest("'; drop table nodes; --"), {
-      params: Promise.resolve({ slug: "'; drop table nodes; --" }),
-    });
-
-    expect(response.status).toBe(200);
-    expect(await response.text()).toContain("isn't set up");
+  it('shows the 404 page for a malformed slug, without ever querying the database', async () => {
+    await expect(
+      GET(buildRequest("'; drop table nodes; --"), {
+        params: Promise.resolve({ slug: "'; drop table nodes; --" }),
+      }),
+    ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
   });
 
-  it('shows a not-set-up page when the Input node is disabled', async () => {
+  it('shows the 404 page when the Input node is disabled', async () => {
     const output = await createOutputNodeRow(user.id, flow.id, 'https://example.com');
     const input = await createInputNodeRow(user.id, flow.id, { input_status: 'disabled' });
     await connectRow(flow.id, user.id, input.id, output.id);
 
-    const response = await GET(buildRequest(input.slug), {
-      params: Promise.resolve({ slug: input.slug }),
-    });
-
-    expect(response.status).toBe(200);
+    await expect(
+      GET(buildRequest(input.slug), { params: Promise.resolve({ slug: input.slug }) }),
+    ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
   });
 
-  it('shows a not-set-up page when the Flow is inactive', async () => {
+  it('shows the 404 page when the Flow is inactive', async () => {
     const inactiveFlow = await createFlowRow(user.id, 'inactive');
     const output = await createOutputNodeRow(user.id, inactiveFlow.id, 'https://example.com');
     const input = await createInputNodeRow(user.id, inactiveFlow.id);
     await connectRow(inactiveFlow.id, user.id, input.id, output.id);
 
-    const response = await GET(buildRequest(input.slug), {
-      params: Promise.resolve({ slug: input.slug }),
-    });
-
-    expect(response.status).toBe(200);
+    await expect(
+      GET(buildRequest(input.slug), { params: Promise.resolve({ slug: input.slug }) }),
+    ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
   });
 
-  it('shows a not-set-up page when the Flow is archived', async () => {
+  it('shows the 404 page when the Flow is archived', async () => {
     const archivedFlow = await createFlowRow(user.id, 'archived');
     const output = await createOutputNodeRow(user.id, archivedFlow.id, 'https://example.com');
     const input = await createInputNodeRow(user.id, archivedFlow.id);
     await connectRow(archivedFlow.id, user.id, input.id, output.id);
 
-    const response = await GET(buildRequest(input.slug), {
-      params: Promise.resolve({ slug: input.slug }),
-    });
-
-    expect(response.status).toBe(200);
+    await expect(
+      GET(buildRequest(input.slug), { params: Promise.resolve({ slug: input.slug }) }),
+    ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
   });
 
   it('never exposes Flow/Node data to anonymous direct table access', async () => {
