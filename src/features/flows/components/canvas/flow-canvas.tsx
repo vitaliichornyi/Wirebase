@@ -14,7 +14,8 @@ import type { FlowWithGraph } from '../../types/flows';
 import { BackButton } from './navigation/back-button';
 import { Sidebar } from './navigation/sidebar/sidebar';
 import { ZoomControls } from './navigation/zoom-controls';
-import { Alert } from '@/shared/ui/alert';
+import { DEMO_ACCOUNT_RESTRICTION_MESSAGE } from '@/shared/lib/demo-account';
+import { toast } from '@/shared/ui/toast';
 
 const NODE_TYPES: NodeTypes = {
   inputNode: InputNode,
@@ -61,11 +62,21 @@ export function FlowCanvas({ initial, host }: FlowCanvasProps) {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
-  const displayedSaveError =
-    saveError &&
-    (saveError === VALIDATION_ERROR_MESSAGE
-      ? saveError
-      : GENERIC_ERROR_MESSAGE);
+  useEffect(() => {
+    if (!saveError) return;
+
+    const displayedSaveError =
+      saveError === VALIDATION_ERROR_MESSAGE ||
+      saveError === DEMO_ACCOUNT_RESTRICTION_MESSAGE
+        ? saveError
+        : GENERIC_ERROR_MESSAGE;
+
+    toast({
+      title: 'Failed to save flow',
+      description: displayedSaveError,
+      type: 'error',
+    });
+  }, [saveError]);
 
   const contextValue = useMemo(
     () => ({
@@ -98,14 +109,6 @@ export function FlowCanvas({ initial, host }: FlowCanvasProps) {
         <div className="fixed inset-0 bg-muted z-40">
           <div className="relative w-screen h-screen">
             <BackButton />
-
-            {displayedSaveError && (
-              <div className="pointer-events-none absolute inset-x-0 top-20 z-10 flex justify-center px-4">
-                <div className="pointer-events-auto w-full max-w-md">
-                  <Alert message={displayedSaveError} />
-                </div>
-              </div>
-            )}
 
             <ReactFlow
               className="h-full w-full"
