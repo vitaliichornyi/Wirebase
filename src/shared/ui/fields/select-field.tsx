@@ -1,5 +1,7 @@
 'use client';
 
+import { cn } from '@/shared/lib/utils';
+
 import type { ReactNode } from 'react';
 
 import {
@@ -20,7 +22,7 @@ interface SelectFieldProps {
   value: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
-  contentClassName?: string;
+  className?: string;
   'aria-label': string;
 }
 
@@ -29,7 +31,7 @@ export function SelectField({
   value,
   onValueChange,
   placeholder,
-  contentClassName,
+  className,
   'aria-label': ariaLabel,
 }: SelectFieldProps) {
   return (
@@ -41,12 +43,12 @@ export function SelectField({
       }}
     >
       <SelectTrigger
-        className="border-transparent bg-input-background has-[[data-slot=input-group-control]:focus-visible]:bg-background dark:bg-input-background/30"
+        className="min-w-20 max-w-80 border-transparent bg-input-background has-[[data-slot=input-group-control]:focus-visible]:bg-background dark:bg-input-background/30"
         aria-label={ariaLabel}
       >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className={contentClassName}>
+      <SelectContent className={cn('w-full min-w-20 max-w-80', className)}>
         {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             {option.label}
