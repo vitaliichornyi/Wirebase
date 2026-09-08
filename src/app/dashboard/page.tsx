@@ -1,22 +1,24 @@
 import {
   getClickFilterOptions,
   getClickStats,
+  parseClickStatsSearchParams,
   DashboardView,
 } from '@/features/dashboard';
+
+import type { ClickStatsSearchParams } from '@/features/dashboard';
 
 import { Empty } from '@/shared/ui/empty';
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ flowId?: string }>;
+  searchParams: Promise<ClickStatsSearchParams>;
 }) {
-  const { flowId } = await searchParams;
-  const initialFilterValues = { timeRange: '7d' as const, flowId };
+  const filterValues = parseClickStatsSearchParams(await searchParams);
 
   const [filterOptionsResult, statsResult] = await Promise.all([
     getClickFilterOptions(),
-    getClickStats(initialFilterValues),
+    getClickStats(filterValues),
   ]);
 
   if (
@@ -31,8 +33,8 @@ export default async function DashboardPage({
   return (
     <DashboardView
       filterOptions={filterOptionsResult.data}
-      initialFilterValues={initialFilterValues}
-      initialStats={statsResult.data}
+      filterValues={filterValues}
+      stats={statsResult.data}
     />
   );
 }

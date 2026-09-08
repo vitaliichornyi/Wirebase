@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { getClickStats } from '@/features/dashboard/actions/click-stats';
+import { useTransition } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { buildClickStatsSearchParams } from '@/features/dashboard/lib/build-click-stats-search-params';
 import type { GetClickStatsInput } from '@/features/dashboard/schemas/click-stats';
 import type {
   ClickFilterOptions,
@@ -12,38 +13,31 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { DashboardToolbar } from '@/features/dashboard/components/dashboard-toolbar';
 import { StatTile } from '@/shared/ui/charts/stat-tile';
 import { RankedBarChart } from '@/shared/ui/charts/bar-chart';
-import { toast } from '@/shared/ui/toast';
 import { cn } from '@/shared/lib/utils';
 
 interface DashboardViewProps {
   filterOptions: ClickFilterOptions;
-  initialFilterValues: GetClickStatsInput;
-  initialStats: ClickStats;
+  filterValues: GetClickStatsInput;
+  stats: ClickStats;
 }
 
 export function DashboardView({
   filterOptions,
-  initialFilterValues,
-  initialStats,
+  filterValues,
+  stats,
 }: DashboardViewProps) {
-  const [filterValues, setFilterValues] =
-    useState<GetClickStatsInput>(initialFilterValues);
-  const [stats, setStats] = useState<ClickStats>(initialStats);
+  const router = useRouter();
+  const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
 
   const handleFiltersChange = (nextFilterValues: GetClickStatsInput) => {
-    setFilterValues(nextFilterValues);
-    startTransition(async () => {
-      const { data, error } = await getClickStats(nextFilterValues);
-      if (error || !data) {
-        toast({
-          title: 'Failed to load dashboard data',
-          description: 'Please try again.',
-          type: 'error',
-        });
-        return;
-      }
-      setStats(data);
+    const queryString =
+      buildClickStatsSearchParams(nextFilterValues).toString();
+
+    startTransition(() => {
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
     });
   };
 
