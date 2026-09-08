@@ -9,9 +9,11 @@ import * as clickStatsService from '@/features/dashboard/services/click-stats';
 export const getClickStats = createSafeAction(
   getClickStatsSchema,
   clickStatsService.getClickStats,
+  { skipDemoGuard: true },
 );
 
 export const getClickFilterOptions = createSafeAction(
   z.void(),
   clickStatsService.getClickFilterOptions,
+  { skipDemoGuard: true },
 );

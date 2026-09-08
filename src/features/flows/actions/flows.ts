@@ -11,15 +11,25 @@ import {
 } from '@/features/flows/schemas/flows';
 import * as flowsService from '@/features/flows/services/flows';
 
-export const createFlow = createSafeAction(createFlowSchema, flowsService.createFlow);
+export const createFlow = createSafeAction(
+  createFlowSchema,
+  flowsService.createFlow,
+);
 
 export const updateFlowStatus = createSafeAction(
   updateFlowStatusSchema,
   flowsService.updateFlowStatus,
 );
 
-export const renameFlow = createSafeAction(renameFlowSchema, flowsService.renameFlow);
+export const renameFlow = createSafeAction(
+  renameFlowSchema,
+  flowsService.renameFlow,
+);
 
-export const getFlow = createSafeAction(getFlowSchema, flowsService.getFlow);
+export const getFlow = createSafeAction(getFlowSchema, flowsService.getFlow, {
+  skipDemoGuard: true,
+});
 
-export const listFlows = createSafeAction(z.void(), flowsService.listFlows);
+export const listFlows = createSafeAction(z.void(), flowsService.listFlows, {
+  skipDemoGuard: true,
+});
