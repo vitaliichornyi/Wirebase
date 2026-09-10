@@ -10,7 +10,7 @@ interface AppShellProps {
 export function AppShell({ children, sidebarFooter }: AppShellProps) {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <MobileHeader />
+      {/* <MobileHeader /> */}
       <div className="flex flex-row flex-1 min-h-0">
         <Sidebar footer={sidebarFooter} />
         <main className="flex-1 overflow-y-auto overflow-x-scroll pb-24 md:pb-0">
