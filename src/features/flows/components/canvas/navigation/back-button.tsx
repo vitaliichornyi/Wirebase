@@ -25,7 +25,7 @@ export function BackButton() {
   return (
     <div className="absolute top-4 left-4 z-10">
       <div className="group w-11 h-11 overflow-hidden canvas-background">
-        <div className="flex h-full w-22 group-hover:-translate-x-1/2 transition-transform duration-200 ease-in-out">
+        <div className="flex h-full w-22 group-hover:-translate-x-1/2 [@media(hover:none)]:-translate-x-1/2 transition-transform duration-200 ease-in-out">
           <div className="flex items-center justify-center w-11 h-11 shrink-0">
             <LogoPrimitive variant="icon" />
           </div>
