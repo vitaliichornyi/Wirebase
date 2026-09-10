@@ -21,13 +21,18 @@ export default async function DashboardPage({
     getClickStats(filterValues),
   ]);
 
-  if (
-    filterOptionsResult.error ||
-    !filterOptionsResult.data ||
-    statsResult.error ||
-    !statsResult.data
-  ) {
+  if (filterOptionsResult.error || statsResult.error) {
     return <Empty type="error" />;
+  }
+
+  if (!filterOptionsResult.data || !statsResult.data) {
+    return (
+      <Empty
+        type="no-data"
+        title="No data yet"
+        description="Create your first flow to start seeing data here."
+      />
+    );
   }
 
   return (

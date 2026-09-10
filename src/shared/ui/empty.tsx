@@ -32,7 +32,7 @@ const EMPTY_STATE_MESSAGES: Record<
   }),
   error: () => ({
     title: 'Something went wrong',
-    description: "We couldn't load this data. Please try again.",
+    description: "We couldn't load data. Please try again.",
   }),
 };
 
