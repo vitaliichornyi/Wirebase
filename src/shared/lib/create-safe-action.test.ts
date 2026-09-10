@@ -14,7 +14,7 @@ import { createSafeAction } from './create-safe-action';
 import {
   DEMO_ACCOUNT_RESTRICTION_MESSAGE,
   DEMO_ACCOUNT_USER_ID,
-} from './demo-account';
+} from './constants';
 import * as getUserModule from './get-user';
 import { activeClientHolder } from '@/test-utils/mock-supabase-server';
 import {

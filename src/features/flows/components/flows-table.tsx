@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import type { FlowListItem, FlowStatus } from '@/features/flows/types/flows';
 import { createFlow, updateFlowStatus } from '@/features/flows/actions/flows';
-import { DEMO_ACCOUNT_RESTRICTION_MESSAGE } from '@/shared/lib/demo-account';
+import { DEMO_ACCOUNT_RESTRICTION_MESSAGE } from '@/shared/lib/constants';
 import { formatDate } from '@/shared/lib/utils';
 
 import { PageHeader } from '@/shared/ui/page-header';
@@ -86,7 +86,9 @@ export function FlowsTable({ initialFlows }: FlowsTableProps) {
       toast({
         title: 'Failed to update flow status',
         description:
-          error === DEMO_ACCOUNT_RESTRICTION_MESSAGE ? error : 'Please try again.',
+          error === DEMO_ACCOUNT_RESTRICTION_MESSAGE
+            ? error
+            : 'Please try again.',
         type: 'error',
       });
       return;

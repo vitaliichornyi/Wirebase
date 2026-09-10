@@ -4,7 +4,7 @@ import type { z } from 'zod';
 import {
   DEMO_ACCOUNT_RESTRICTION_MESSAGE,
   DEMO_ACCOUNT_USER_ID,
-} from '@/shared/lib/demo-account';
+} from '@/shared/lib/constants';
 import { getUser } from '@/shared/lib/get-user';
 import type { ActionResponse } from '@/shared/types/action-response';
 

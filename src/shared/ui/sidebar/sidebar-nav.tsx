@@ -1,16 +1,9 @@
-import { DashboardIcon } from '@/shared/ui/icons/dashboard-icon';
-import { FlowsIcon } from '@/shared/ui/icons/flows-icon';
 import { NavItem } from './nav-item';
+import { NAV_ITEMS } from '@/shared/lib/constants';
 
 interface SidebarNavProps {
   isCollapsed: boolean;
 }
-
-const NAV_ITEMS: { label: string; href: string; icon: React.ComponentType }[] =
-  [
-    { label: 'Dashboards', href: '/dashboard', icon: DashboardIcon },
-    { label: 'Flows', href: '/dashboard/flows', icon: FlowsIcon },
-  ];
 
 export function SidebarNav({ isCollapsed }: SidebarNavProps) {
   return (

@@ -176,8 +176,6 @@ export function useFlowCanvas(initial: FlowWithGraph) {
 
   const handleUpdateNodeData = useCallback(
     (nodeId: string, patch: NodePatch) => {
-      console.log(patch);
-      console.log(nodes);
       setNodes((current) =>
         current.map((canvasNode) =>
           canvasNode.id === nodeId

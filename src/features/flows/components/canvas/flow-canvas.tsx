@@ -14,7 +14,7 @@ import type { FlowWithGraph } from '../../types/flows';
 import { BackButton } from './navigation/back-button';
 import { Sidebar } from './navigation/sidebar/sidebar';
 import { ZoomControls } from './navigation/zoom-controls';
-import { DEMO_ACCOUNT_RESTRICTION_MESSAGE } from '@/shared/lib/demo-account';
+import { DEMO_ACCOUNT_RESTRICTION_MESSAGE } from '@/shared/lib/constants';
 import { toast } from '@/shared/ui/toast';
 
 const NODE_TYPES: NodeTypes = {
