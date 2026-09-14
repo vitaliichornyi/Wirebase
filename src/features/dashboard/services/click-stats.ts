@@ -1,4 +1,5 @@
 import { createClient } from '@/shared/lib/supabase/server';
+import { withSupabaseRetry } from '@/shared/lib/supabase/with-retry';
 import { formatLinkStatusMarker } from '@/features/dashboard/lib/format-link-status-marker';
 
 import type { GetClickStatsInput } from '@/features/dashboard/schemas/click-stats';
@@ -73,11 +74,13 @@ async function resolveLinkBuckets(
   }
 
   const supabase = await createClient();
-  const { data: nodeRows } = await supabase
-    .from('nodes')
-    .select('id, name, input_status, flow:flows(status)')
-    .eq('user_id', userId)
-    .in('id', inputNodeIds);
+  const { data: nodeRows } = await withSupabaseRetry(() =>
+    supabase
+      .from('nodes')
+      .select('id, name, input_status, flow:flows(status)')
+      .eq('user_id', userId)
+      .in('id', inputNodeIds),
+  );
 
   const labelById = new Map<string, string>();
   for (const node of (nodeRows ?? []) as unknown as NodeRow[]) {
@@ -120,7 +123,9 @@ export async function getClickStats(
       query = query.eq('country', input.country);
     }
 
-    const { data: clickRows, error: clicksError } = await query;
+    const { data: clickRows, error: clicksError } = await withSupabaseRetry(
+      () => query,
+    );
     if (clicksError) {
       return { data: null, error: clicksError.message };
     }
@@ -183,11 +188,13 @@ export async function getClickFilterOptions(
   try {
     const supabase = await createClient();
 
-    const { data: flowRows, error: flowsError } = await supabase
-      .from('flows')
-      .select('id, name, status')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
+    const { data: flowRows, error: flowsError } = await withSupabaseRetry(() =>
+      supabase
+        .from('flows')
+        .select('id, name, status')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false }),
+    );
 
     if (flowsError) {
       return { data: null, error: flowsError.message };
@@ -195,13 +202,15 @@ export async function getClickFilterOptions(
 
     const flows: FlowFilterOption[] = flowRows ?? [];
 
-    const { data: nodeRows, error: nodesError } = await supabase
-      .from('nodes')
-      .select('id, name, input_status, flow:flows(name, status)')
-      .eq('user_id', user.id)
-      .eq('type', 'input')
-      .is('deleted_at', null)
-      .order('name');
+    const { data: nodeRows, error: nodesError } = await withSupabaseRetry(() =>
+      supabase
+        .from('nodes')
+        .select('id, name, input_status, flow:flows(name, status)')
+        .eq('user_id', user.id)
+        .eq('type', 'input')
+        .is('deleted_at', null)
+        .order('name'),
+    );
 
     if (nodesError) {
       return { data: null, error: nodesError.message };
@@ -217,11 +226,14 @@ export async function getClickFilterOptions(
       isDisabled: row.input_status === 'disabled',
     }));
 
-    const { data: countryRows, error: countriesError } = await supabase
-      .from('clicks')
-      .select('country')
-      .eq('user_id', user.id)
-      .not('country', 'is', null);
+    const { data: countryRows, error: countriesError } = await withSupabaseRetry(
+      () =>
+        supabase
+          .from('clicks')
+          .select('country')
+          .eq('user_id', user.id)
+          .not('country', 'is', null),
+    );
 
     if (countriesError) {
       return { data: null, error: countriesError.message };

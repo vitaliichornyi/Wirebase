@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js';
 
 import { generateSlug } from '@/features/flows/lib/generate-slug';
 import { createClient } from '@/shared/lib/supabase/server';
+import { withSupabaseRetry } from '@/shared/lib/supabase/with-retry';
 import type {
   AddInputNodeInput,
   AddOutputNodeInput,
@@ -63,20 +64,19 @@ export function mapOutputNodeRow(row: NodeRow): OutputNode {
   };
 }
 
-// Ownership boilerplate (CLAUDE.md: Data Layer > Authentication &
-// authorization) — extracted once a second function in this file needed the
-// identical flow-ownership check.
 async function assertOwnsFlow(
   flowId: string,
   userId: string,
 ): Promise<string | null> {
   const supabase = await createClient();
-  const { data: flowRow, error: flowError } = await supabase
-    .from('flows')
-    .select('id')
-    .eq('id', flowId)
-    .eq('user_id', userId)
-    .maybeSingle();
+  const { data: flowRow, error: flowError } = await withSupabaseRetry(() =>
+    supabase
+      .from('flows')
+      .select('id')
+      .eq('id', flowId)
+      .eq('user_id', userId)
+      .maybeSingle(),
+  );
 
   if (flowError) return flowError.message;
   if (!flowRow) return 'Flow not found';
@@ -98,20 +98,22 @@ export async function addInputNode(
     let lastError: string | null = null;
 
     for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
-      const { data: nodeRow, error: nodeError } = await supabase
-        .from('nodes')
-        .insert({
-          flow_id: input.flowId,
-          user_id: user.id,
-          type: 'input',
-          name: input.name?.trim() || 'Untitled link',
-          position_x: input.positionX ?? 0,
-          position_y: input.positionY ?? 0,
-          slug: generateSlug(),
-          input_status: 'enabled',
-        })
-        .select()
-        .single();
+      const { data: nodeRow, error: nodeError } = await withSupabaseRetry(() =>
+        supabase
+          .from('nodes')
+          .insert({
+            flow_id: input.flowId,
+            user_id: user.id,
+            type: 'input',
+            name: input.name?.trim() || 'Untitled link',
+            position_x: input.positionX ?? 0,
+            position_y: input.positionY ?? 0,
+            slug: generateSlug(),
+            input_status: 'enabled',
+          })
+          .select()
+          .single(),
+      );
 
       if (!nodeError && nodeRow) {
         return { data: mapInputNodeRow(nodeRow), error: null };
@@ -122,10 +124,16 @@ export async function addInputNode(
         continue;
       }
 
-      return { data: null, error: nodeError?.message ?? 'Unknown server error' };
+      return {
+        data: null,
+        error: nodeError?.message ?? 'Unknown server error',
+      };
     }
 
-    return { data: null, error: lastError ?? 'Could not generate a unique slug' };
+    return {
+      data: null,
+      error: lastError ?? 'Could not generate a unique slug',
+    };
   } catch (error) {
     return {
       data: null,
@@ -146,22 +154,27 @@ export async function addOutputNode(
       return { data: null, error: ownershipError };
     }
 
-    const { data: nodeRow, error: nodeError } = await supabase
-      .from('nodes')
-      .insert({
-        flow_id: input.flowId,
-        user_id: user.id,
-        type: 'output',
-        name: input.name?.trim() || 'Untitled destination',
-        position_x: input.positionX ?? 0,
-        position_y: input.positionY ?? 0,
-        destination_url: input.destinationUrl,
-      })
-      .select()
-      .single();
+    const { data: nodeRow, error: nodeError } = await withSupabaseRetry(() =>
+      supabase
+        .from('nodes')
+        .insert({
+          flow_id: input.flowId,
+          user_id: user.id,
+          type: 'output',
+          name: input.name?.trim() || 'Untitled destination',
+          position_x: input.positionX ?? 0,
+          position_y: input.positionY ?? 0,
+          destination_url: input.destinationUrl,
+        })
+        .select()
+        .single(),
+    );
 
     if (nodeError || !nodeRow) {
-      return { data: null, error: nodeError?.message ?? 'Unknown server error' };
+      return {
+        data: null,
+        error: nodeError?.message ?? 'Unknown server error',
+      };
     }
 
     return { data: mapOutputNodeRow(nodeRow), error: null };
@@ -173,8 +186,6 @@ export async function addOutputNode(
   }
 }
 
-// Independent of Flow status (ADR 0012's Q9 discussion) — a single Input
-// node can be Disabled inside an otherwise Active Flow.
 export async function updateInputNodeStatus(
   input: UpdateInputNodeStatusInput,
   user: User,
@@ -182,15 +193,17 @@ export async function updateInputNodeStatus(
   try {
     const supabase = await createClient();
 
-    const { data: nodeRow, error: nodeError } = await supabase
-      .from('nodes')
-      .update({ input_status: input.status })
-      .eq('id', input.nodeId)
-      .eq('user_id', user.id)
-      .eq('type', 'input')
-      .is('deleted_at', null)
-      .select()
-      .maybeSingle();
+    const { data: nodeRow, error: nodeError } = await withSupabaseRetry(() =>
+      supabase
+        .from('nodes')
+        .update({ input_status: input.status })
+        .eq('id', input.nodeId)
+        .eq('user_id', user.id)
+        .eq('type', 'input')
+        .is('deleted_at', null)
+        .select()
+        .maybeSingle(),
+    );
 
     if (nodeError) {
       return { data: null, error: nodeError.message };
@@ -209,9 +222,6 @@ export async function updateInputNodeStatus(
   }
 }
 
-// UTM values are per-Input-node with no Flow-level inheritance (ADR 0014).
-// Forwarded to the destination on redirect (ADR 0013) and captured on each
-// Click at the time it's recorded.
 export async function updateInputNodeUtm(
   input: UpdateInputNodeUtmInput,
   user: User,
@@ -219,21 +229,23 @@ export async function updateInputNodeUtm(
   try {
     const supabase = await createClient();
 
-    const { data: nodeRow, error: nodeError } = await supabase
-      .from('nodes')
-      .update({
-        utm_source: input.utmSource || null,
-        utm_medium: input.utmMedium || null,
-        utm_campaign: input.utmCampaign || null,
-        utm_term: input.utmTerm || null,
-        utm_content: input.utmContent || null,
-      })
-      .eq('id', input.nodeId)
-      .eq('user_id', user.id)
-      .eq('type', 'input')
-      .is('deleted_at', null)
-      .select()
-      .maybeSingle();
+    const { data: nodeRow, error: nodeError } = await withSupabaseRetry(() =>
+      supabase
+        .from('nodes')
+        .update({
+          utm_source: input.utmSource || null,
+          utm_medium: input.utmMedium || null,
+          utm_campaign: input.utmCampaign || null,
+          utm_term: input.utmTerm || null,
+          utm_content: input.utmContent || null,
+        })
+        .eq('id', input.nodeId)
+        .eq('user_id', user.id)
+        .eq('type', 'input')
+        .is('deleted_at', null)
+        .select()
+        .maybeSingle(),
+    );
 
     if (nodeError) {
       return { data: null, error: nodeError.message };
@@ -252,10 +264,6 @@ export async function updateInputNodeUtm(
   }
 }
 
-// Renaming an Input or Output node is one of the changes gated behind the
-// canvas's explicit Save (ADR 0010) — the client only calls this once the
-// user clicks Save. The row's own `type` decides which mapper applies, so
-// one action covers both node kinds.
 export async function renameNode(
   input: RenameNodeInput,
   user: User,
@@ -263,14 +271,16 @@ export async function renameNode(
   try {
     const supabase = await createClient();
 
-    const { data: nodeRow, error: nodeError } = await supabase
-      .from('nodes')
-      .update({ name: input.name })
-      .eq('id', input.nodeId)
-      .eq('user_id', user.id)
-      .is('deleted_at', null)
-      .select()
-      .maybeSingle();
+    const { data: nodeRow, error: nodeError } = await withSupabaseRetry(() =>
+      supabase
+        .from('nodes')
+        .update({ name: input.name })
+        .eq('id', input.nodeId)
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .select()
+        .maybeSingle(),
+    );
 
     if (nodeError) {
       return { data: null, error: nodeError.message };
@@ -289,8 +299,6 @@ export async function renameNode(
   }
 }
 
-// Canvas position is likewise only persisted on explicit Save (ADR 0010) —
-// dragging a node around before Save never reaches this action.
 export async function repositionNode(
   input: RepositionNodeInput,
   user: User,
@@ -298,14 +306,16 @@ export async function repositionNode(
   try {
     const supabase = await createClient();
 
-    const { data: nodeRow, error: nodeError } = await supabase
-      .from('nodes')
-      .update({ position_x: input.positionX, position_y: input.positionY })
-      .eq('id', input.nodeId)
-      .eq('user_id', user.id)
-      .is('deleted_at', null)
-      .select()
-      .maybeSingle();
+    const { data: nodeRow, error: nodeError } = await withSupabaseRetry(() =>
+      supabase
+        .from('nodes')
+        .update({ position_x: input.positionX, position_y: input.positionY })
+        .eq('id', input.nodeId)
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .select()
+        .maybeSingle(),
+    );
 
     if (nodeError) {
       return { data: null, error: nodeError.message };
@@ -331,15 +341,17 @@ export async function updateOutputDestinationUrl(
   try {
     const supabase = await createClient();
 
-    const { data: nodeRow, error: nodeError } = await supabase
-      .from('nodes')
-      .update({ destination_url: input.destinationUrl })
-      .eq('id', input.nodeId)
-      .eq('user_id', user.id)
-      .eq('type', 'output')
-      .is('deleted_at', null)
-      .select()
-      .maybeSingle();
+    const { data: nodeRow, error: nodeError } = await withSupabaseRetry(() =>
+      supabase
+        .from('nodes')
+        .update({ destination_url: input.destinationUrl })
+        .eq('id', input.nodeId)
+        .eq('user_id', user.id)
+        .eq('type', 'output')
+        .is('deleted_at', null)
+        .select()
+        .maybeSingle(),
+    );
 
     if (nodeError) {
       return { data: null, error: nodeError.message };
@@ -358,10 +370,6 @@ export async function updateOutputDestinationUrl(
   }
 }
 
-// Soft-delete (ADR 0006, ADR 0011): the row and its Click history persist —
-// only marked deleted_at and hidden from the owner-facing UI, which treats
-// it as permanently gone. Removes only this node's own edges, never
-// cascading into a shared Output that other Input nodes still depend on.
 export async function deleteNode(
   input: DeleteNodeInput,
   user: User,
@@ -369,14 +377,16 @@ export async function deleteNode(
   try {
     const supabase = await createClient();
 
-    const { data: nodeRow, error: nodeError } = await supabase
-      .from('nodes')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', input.nodeId)
-      .eq('user_id', user.id)
-      .is('deleted_at', null)
-      .select('id')
-      .maybeSingle();
+    const { data: nodeRow, error: nodeError } = await withSupabaseRetry(() =>
+      supabase
+        .from('nodes')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', input.nodeId)
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .select('id')
+        .maybeSingle(),
+    );
 
     if (nodeError) {
       return { error: nodeError.message };
@@ -386,11 +396,13 @@ export async function deleteNode(
       return { error: 'Node not found' };
     }
 
-    const { error: edgesError } = await supabase
-      .from('edges')
-      .delete()
-      .eq('user_id', user.id)
-      .or(`from_node_id.eq.${input.nodeId},to_node_id.eq.${input.nodeId}`);
+    const { error: edgesError } = await withSupabaseRetry(() =>
+      supabase
+        .from('edges')
+        .delete()
+        .eq('user_id', user.id)
+        .or(`from_node_id.eq.${input.nodeId},to_node_id.eq.${input.nodeId}`),
+    );
 
     if (edgesError) {
       return { error: edgesError.message };

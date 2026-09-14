@@ -1,6 +1,7 @@
 import type { User } from '@supabase/supabase-js';
 
 import { createClient } from '@/shared/lib/supabase/server';
+import { withSupabaseRetry } from '@/shared/lib/supabase/with-retry';
 import * as nodesService from '@/features/flows/services/nodes';
 import type {
   CreateFlowInput,
@@ -35,8 +36,6 @@ function mapFlowRow(row: FlowRow): Flow {
   };
 }
 
-// A new Flow is seeded with exactly one auto-generated Input node and no
-// Output node (ADR 0009).
 export async function createFlow(
   input: CreateFlowInput,
   user: User,
@@ -44,17 +43,22 @@ export async function createFlow(
   try {
     const supabase = await createClient();
 
-    const { data: flowRow, error: flowError } = await supabase
-      .from('flows')
-      .insert({
-        user_id: user.id,
-        name: input.name?.trim() || 'Untitled flow',
-      })
-      .select()
-      .single();
+    const { data: flowRow, error: flowError } = await withSupabaseRetry(() =>
+      supabase
+        .from('flows')
+        .insert({
+          user_id: user.id,
+          name: input.name?.trim() || 'Untitled flow',
+        })
+        .select()
+        .single(),
+    );
 
     if (flowError || !flowRow) {
-      return { data: null, error: flowError?.message ?? 'Unknown server error' };
+      return {
+        data: null,
+        error: flowError?.message ?? 'Unknown server error',
+      };
     }
 
     const inputNodeResult = await nodesService.addInputNode(
@@ -64,7 +68,10 @@ export async function createFlow(
 
     if (inputNodeResult.error || !inputNodeResult.data) {
       await supabase.from('flows').delete().eq('id', flowRow.id);
-      return { data: null, error: inputNodeResult.error ?? 'Unknown server error' };
+      return {
+        data: null,
+        error: inputNodeResult.error ?? 'Unknown server error',
+      };
     }
 
     return {
@@ -82,9 +89,6 @@ export async function createFlow(
   }
 }
 
-// One action covers all three transitions (ADR 0012) — reactivating from
-// Inactive and unarchiving from Archived are both just setting status back
-// to 'active'.
 export async function updateFlowStatus(
   input: UpdateFlowStatusInput,
   user: User,
@@ -92,13 +96,15 @@ export async function updateFlowStatus(
   try {
     const supabase = await createClient();
 
-    const { data: flowRow, error: flowError } = await supabase
-      .from('flows')
-      .update({ status: input.status })
-      .eq('id', input.flowId)
-      .eq('user_id', user.id)
-      .select()
-      .maybeSingle();
+    const { data: flowRow, error: flowError } = await withSupabaseRetry(() =>
+      supabase
+        .from('flows')
+        .update({ status: input.status })
+        .eq('id', input.flowId)
+        .eq('user_id', user.id)
+        .select()
+        .maybeSingle(),
+    );
 
     if (flowError) {
       return { data: null, error: flowError.message };
@@ -117,8 +123,6 @@ export async function updateFlowStatus(
   }
 }
 
-// Renaming is one of the changes gated behind the canvas's explicit Save
-// (ADR 0010) — the client only calls this once the user clicks Save.
 export async function renameFlow(
   input: RenameFlowInput,
   user: User,
@@ -126,13 +130,15 @@ export async function renameFlow(
   try {
     const supabase = await createClient();
 
-    const { data: flowRow, error: flowError } = await supabase
-      .from('flows')
-      .update({ name: input.name })
-      .eq('id', input.flowId)
-      .eq('user_id', user.id)
-      .select()
-      .maybeSingle();
+    const { data: flowRow, error: flowError } = await withSupabaseRetry(() =>
+      supabase
+        .from('flows')
+        .update({ name: input.name })
+        .eq('id', input.flowId)
+        .eq('user_id', user.id)
+        .select()
+        .maybeSingle(),
+    );
 
     if (flowError) {
       return { data: null, error: flowError.message };
@@ -151,9 +157,6 @@ export async function renameFlow(
   }
 }
 
-// Feeds the canvas editor's initial load: the Flow itself plus every
-// non-deleted Node and Edge it owns, mapped to the same domain shapes the
-// rest of this feature already uses.
 export async function getFlow(
   input: GetFlowInput,
   user: User,
@@ -161,12 +164,14 @@ export async function getFlow(
   try {
     const supabase = await createClient();
 
-    const { data: flowRow, error: flowError } = await supabase
-      .from('flows')
-      .select('*')
-      .eq('id', input.flowId)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const { data: flowRow, error: flowError } = await withSupabaseRetry(() =>
+      supabase
+        .from('flows')
+        .select('*')
+        .eq('id', input.flowId)
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    );
 
     if (flowError) {
       return { data: null, error: flowError.message };
@@ -176,22 +181,26 @@ export async function getFlow(
       return { data: null, error: 'Flow not found' };
     }
 
-    const { data: nodeRows, error: nodesError } = await supabase
-      .from('nodes')
-      .select('*')
-      .eq('flow_id', input.flowId)
-      .eq('user_id', user.id)
-      .is('deleted_at', null);
+    const { data: nodeRows, error: nodesError } = await withSupabaseRetry(() =>
+      supabase
+        .from('nodes')
+        .select('*')
+        .eq('flow_id', input.flowId)
+        .eq('user_id', user.id)
+        .is('deleted_at', null),
+    );
 
     if (nodesError) {
       return { data: null, error: nodesError.message };
     }
 
-    const { data: edgeRows, error: edgesError } = await supabase
-      .from('edges')
-      .select('*')
-      .eq('flow_id', input.flowId)
-      .eq('user_id', user.id);
+    const { data: edgeRows, error: edgesError } = await withSupabaseRetry(() =>
+      supabase
+        .from('edges')
+        .select('*')
+        .eq('flow_id', input.flowId)
+        .eq('user_id', user.id),
+    );
 
     if (edgesError) {
       return { data: null, error: edgesError.message };
@@ -214,8 +223,6 @@ export async function getFlow(
   }
 }
 
-// One row per Flow, not per link (ADR 0007). Sorted most-recently-edited
-// first, matching the flows list page's default sort.
 export async function listFlows(
   _input: void,
   user: User,
@@ -223,22 +230,27 @@ export async function listFlows(
   try {
     const supabase = await createClient();
 
-    const { data: flowRows, error: flowsError } = await supabase
-      .from('flows')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
+    const { data: flowRows, error: flowsError } = await withSupabaseRetry(() =>
+      supabase
+        .from('flows')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false }),
+    );
 
     if (flowsError) {
       return { data: null, error: flowsError.message };
     }
 
-    const { data: inputNodeRows, error: nodesError } = await supabase
-      .from('nodes')
-      .select('flow_id')
-      .eq('user_id', user.id)
-      .eq('type', 'input')
-      .is('deleted_at', null);
+    const { data: inputNodeRows, error: nodesError } = await withSupabaseRetry(
+      () =>
+        supabase
+          .from('nodes')
+          .select('flow_id')
+          .eq('user_id', user.id)
+          .eq('type', 'input')
+          .is('deleted_at', null),
+    );
 
     if (nodesError) {
       return { data: null, error: nodesError.message };
