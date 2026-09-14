@@ -67,10 +67,10 @@ export function mapOutputNodeRow(row: NodeRow): OutputNode {
 // authorization) — extracted once a second function in this file needed the
 // identical flow-ownership check.
 async function assertOwnsFlow(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   flowId: string,
   userId: string,
 ): Promise<string | null> {
+  const supabase = await createClient();
   const { data: flowRow, error: flowError } = await supabase
     .from('flows')
     .select('id')
@@ -90,7 +90,7 @@ export async function addInputNode(
   try {
     const supabase = await createClient();
 
-    const ownershipError = await assertOwnsFlow(supabase, input.flowId, user.id);
+    const ownershipError = await assertOwnsFlow(input.flowId, user.id);
     if (ownershipError) {
       return { data: null, error: ownershipError };
     }
@@ -141,7 +141,7 @@ export async function addOutputNode(
   try {
     const supabase = await createClient();
 
-    const ownershipError = await assertOwnsFlow(supabase, input.flowId, user.id);
+    const ownershipError = await assertOwnsFlow(input.flowId, user.id);
     if (ownershipError) {
       return { data: null, error: ownershipError };
     }

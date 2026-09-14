@@ -61,7 +61,6 @@ function bucketTop(counts: Map<string, number>): RankedBucket[] {
 }
 
 async function resolveLinkBuckets(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   buckets: RankedBucket[],
 ): Promise<RankedBucket[]> {
@@ -73,6 +72,7 @@ async function resolveLinkBuckets(
     return buckets;
   }
 
+  const supabase = await createClient();
   const { data: nodeRows } = await supabase
     .from('nodes')
     .select('id, name, input_status, flow:flows(status)')
@@ -154,7 +154,6 @@ export async function getClickStats(
     }
 
     const byLink = await resolveLinkBuckets(
-      supabase,
       user.id,
       bucketTop(linkCounts),
     );
