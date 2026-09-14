@@ -21,6 +21,9 @@ export default async function DashboardPage({
     getClickStats(filterValues),
   ]);
 
+  console.log(filterOptionsResult);
+  console.log(statsResult);
+
   if (filterOptionsResult.error || statsResult.error) {
     return <Empty type="error" />;
   }
