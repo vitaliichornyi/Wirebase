@@ -3,6 +3,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
+import { HotjarProvider } from '@/shared/providers/hotjar-provider';
 import { ToasterProvider } from '@/shared/providers/toaster-provider';
 import { TooltipProvider } from '@/shared/providers/tooltip-provider';
 
@@ -26,6 +27,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>
         <ToasterProvider />
+        <HotjarProvider />
       </body>
     </html>
   );
