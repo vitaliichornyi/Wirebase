@@ -1,8 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 
 import { createClient } from '@/shared/lib/supabase/server';
-import { withSupabaseRetry } from '@/shared/lib/supabase/with-retry';
-
 import type {
   ConnectEdgeInput,
   DisconnectEdgeInput,
@@ -25,6 +23,8 @@ export function mapEdgeRow(row: EdgeRow): Edge {
   };
 }
 
+// Every node has exactly one slot per direction today ("out"/"in") — see
+// ADR 0002, so an "out" slot can only ever point at one destination.
 export async function connectEdge(
   input: ConnectEdgeInput,
   user: User,
@@ -32,15 +32,13 @@ export async function connectEdge(
   try {
     const supabase = await createClient();
 
-    const { data: nodeRows, error: nodesError } = await withSupabaseRetry(() =>
-      supabase
-        .from('nodes')
-        .select('id, type')
-        .eq('flow_id', input.flowId)
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .in('id', [input.fromNodeId, input.toNodeId]),
-    );
+    const { data: nodeRows, error: nodesError } = await supabase
+      .from('nodes')
+      .select('id, type')
+      .eq('flow_id', input.flowId)
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .in('id', [input.fromNodeId, input.toNodeId]);
 
     if (nodesError) {
       return { data: null, error: nodesError.message };
@@ -54,39 +52,28 @@ export async function connectEdge(
     }
 
     if (fromNode.type !== 'input' || toNode.type !== 'output') {
-      return {
-        data: null,
-        error: 'An edge must connect an Input node to an Output node',
-      };
+      return { data: null, error: 'An edge must connect an Input node to an Output node' };
     }
 
-    const { data: edgeRow, error: edgeError } = await withSupabaseRetry(() =>
-      supabase
-        .from('edges')
-        .insert({
-          flow_id: input.flowId,
-          user_id: user.id,
-          from_node_id: input.fromNodeId,
-          from_slot: 'out',
-          to_node_id: input.toNodeId,
-          to_slot: 'in',
-        })
-        .select()
-        .single(),
-    );
+    const { data: edgeRow, error: edgeError } = await supabase
+      .from('edges')
+      .insert({
+        flow_id: input.flowId,
+        user_id: user.id,
+        from_node_id: input.fromNodeId,
+        from_slot: 'out',
+        to_node_id: input.toNodeId,
+        to_slot: 'in',
+      })
+      .select()
+      .single();
 
     if (edgeError?.code === UNIQUE_VIOLATION) {
-      return {
-        data: null,
-        error: 'This node is already connected to a destination',
-      };
+      return { data: null, error: 'This node is already connected to a destination' };
     }
 
     if (edgeError || !edgeRow) {
-      return {
-        data: null,
-        error: edgeError?.message ?? 'Unknown server error',
-      };
+      return { data: null, error: edgeError?.message ?? 'Unknown server error' };
     }
 
     return { data: mapEdgeRow(edgeRow), error: null };
@@ -105,15 +92,13 @@ export async function disconnectEdge(
   try {
     const supabase = await createClient();
 
-    const { data: edgeRow, error: edgeError } = await withSupabaseRetry(() =>
-      supabase
-        .from('edges')
-        .delete()
-        .eq('id', input.edgeId)
-        .eq('user_id', user.id)
-        .select('id')
-        .maybeSingle(),
-    );
+    const { data: edgeRow, error: edgeError } = await supabase
+      .from('edges')
+      .delete()
+      .eq('id', input.edgeId)
+      .eq('user_id', user.id)
+      .select('id')
+      .maybeSingle();
 
     if (edgeError) {
       return { error: edgeError.message };
